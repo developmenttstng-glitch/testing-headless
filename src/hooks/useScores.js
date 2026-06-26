@@ -21,11 +21,15 @@ export function useScores() {
     return (scores[id] || []).slice(0, n)
   }, [scores])
 
-  const addScore = useCallback((id, score) => {
+  const addScore = useCallback((id, score, name = '') => {
     setScores(prev => {
-      const list = [...(prev[id] || []), { score, date: new Date().toLocaleDateString() }]
+      const list = [...(prev[id] || []), {
+        score,
+        name: name.trim().slice(0, 16) || '',
+        date: new Date().toLocaleDateString(),
+      }]
       list.sort((a, b) => b.score - a.score)
-      const next = { ...prev, [id]: list.slice(0, 5) }
+      const next = { ...prev, [id]: list.slice(0, 10) }
       save(next)
       return next
     })

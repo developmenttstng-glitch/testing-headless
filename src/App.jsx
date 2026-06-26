@@ -1,47 +1,84 @@
 import { useState, useEffect } from 'react'
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
-import CartDrawer from './components/CartDrawer'
-import HomePage from './pages/HomePage'
-import ShopPage from './pages/ShopPage'
-import LookbookPage from './pages/LookbookPage'
-import ArcadePage from './pages/ArcadePage'
-import AboutPage from './pages/AboutPage'
-import MusicPage from './pages/MusicPage'
-import { useProducts } from './hooks/useProducts'
-import { useCart } from './hooks/useCart'
+import Navbar           from './components/Navbar'
+import Footer           from './components/Footer'
+import CartDrawer       from './components/CartDrawer'
+import MiniPlayer       from './components/MiniPlayer'
+import ProductDetailPage from './components/ProductDetailPage'
+import HomePage         from './pages/HomePage'
+import ShopPage         from './pages/ShopPage'
+import LookbookPage     from './pages/LookbookPage'
+import ArcadePage       from './pages/ArcadePage'
+import AboutPage        from './pages/AboutPage'
+import MusicPage        from './pages/MusicPage'
+import WishlistPage     from './pages/WishlistPage'
+import { useProducts }  from './hooks/useProducts'
+import { useCart }      from './hooks/useCart'
+import { useWishlist }  from './hooks/useWishlist'
+import { useRecentlyViewed } from './hooks/useRecentlyViewed'
 
 export default function App() {
-  const [page,     setPage]     = useState('home')
-  const [cartOpen, setCartOpen] = useState(false)
+  const [page,       setPage]       = useState('home')
+  const [cartOpen,   setCartOpen]   = useState(false)
+  const [detailProd, setDetailProd] = useState(null)
+  const [musicOn,    setMusicOn]    = useState(false)
 
   const { products, loading } = useProducts(12)
   const {
     lines, totalItems, totalPrice, currency,
     loading: cartLoading, addToCart, goToCheckout,
   } = useCart()
+  const { items: wishlist, toggle: toggleWishlist, isWishlisted, count: wishCount } = useWishlist()
+  const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
 
-  useEffect(() => { window.scrollTo({ top: 0 }) }, [page])
+  useEffect(() => { window.scrollTo({ top:0 }) }, [page])
 
   function navigate(p) { setPage(p); setCartOpen(false) }
 
+  function handleViewDetail(product) {
+    addRecentlyViewed(product)
+    setDetailProd(product)
+  }
+
+  // Show mini player when user has visited music page
+  function handleNav(p) {
+    if (p === 'music') setMusicOn(true)
+    navigate(p)
+  }
+
+  const sharedProps = {
+    onAddToCart: addToCart,
+    cartLoading,
+    isWishlisted,
+    onToggleWishlist: toggleWishlist,
+    onViewDetail: handleViewDetail,
+    recentlyViewed,
+  }
+
   function renderPage() {
     switch (page) {
-      case 'home':     return <HomePage     products={products} loading={loading} onAddToCart={addToCart} cartLoading={cartLoading} onNav={navigate}/>
-      case 'shop':     return <ShopPage     products={products} loading={loading} onAddToCart={addToCart} cartLoading={cartLoading}/>
-      case 'lookbook': return <LookbookPage onNav={navigate}/>
+      case 'home':     return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
+      case 'shop':     return <ShopPage     products={products} loading={loading} {...sharedProps}/>
+      case 'lookbook': return <LookbookPage onNav={handleNav}/>
       case 'arcade':   return <ArcadePage/>
       case 'music':    return <MusicPage/>
-      case 'about':    return <AboutPage    onNav={navigate}/>
-      default:         return <HomePage     products={products} loading={loading} onAddToCart={addToCart} cartLoading={cartLoading} onNav={navigate}/>
+      case 'about':    return <AboutPage    onNav={handleNav}/>
+      case 'wishlist': return <WishlistPage items={wishlist} onNav={handleNav} {...sharedProps}/>
+      default:         return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
     }
   }
 
   return (
-    <div>
-      <Navbar page={page} onNav={navigate} totalItems={totalItems} onCartOpen={() => setCartOpen(true)}/>
+    <div style={{ paddingBottom: musicOn && page !== 'music' ? '56px' : 0 }}>
+      <Navbar
+        page={page}
+        onNav={handleNav}
+        totalItems={totalItems}
+        wishCount={wishCount}
+        onCartOpen={() => setCartOpen(true)}
+      />
       <main>{renderPage()}</main>
-      <Footer onNav={navigate}/>
+      <Footer onNav={handleNav}/>
+
       {cartOpen && (
         <CartDrawer
           lines={lines}
@@ -51,6 +88,23 @@ export default function App() {
           onCheckout={goToCheckout}
           cartLoading={cartLoading}
         />
+      )}
+
+      {/* Product detail modal - accessible from any page */}
+      {detailProd && (
+        <ProductDetailPage
+          product={detailProd}
+          onAddToCart={addToCart}
+          cartLoading={cartLoading}
+          onClose={() => setDetailProd(null)}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={toggleWishlist}
+        />
+      )}
+
+      {/* Mini player - shown on all pages except music */}
+      {musicOn && page !== 'music' && (
+        <MiniPlayer onNav={handleNav}/>
       )}
     </div>
   )

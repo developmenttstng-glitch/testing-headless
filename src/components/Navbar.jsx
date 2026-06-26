@@ -7,9 +7,10 @@ const links = [
   { label: 'Arcade',   page: 'arcade' },
   { label: 'Music',    page: 'music' },
   { label: 'About',    page: 'about' },
+  { label: 'Wishlist', page: 'wishlist' },
 ]
 
-export default function Navbar({ page, onNav, totalItems, onCartOpen }) {
+export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen }) {
   const [scrolled,  setScrolled]  = useState(false)
   const [menuOpen,  setMenuOpen]  = useState(false)
 
@@ -63,6 +64,11 @@ export default function Navbar({ page, onNav, totalItems, onCartOpen }) {
           padding:7px 16px; transition:all 0.15s; cursor:pointer;
         }
         .cart-btn:hover { background:rgba(0,255,200,0.08); border-color:var(--accent); }
+        .wish-badge {
+          display:inline-flex; align-items:center; justify-content:center;
+          width:16px; height:16px; background:#ff003c; color:white;
+          font-size:9px; font-weight:700; border-radius:50%; margin-left:4px;
+        }
         .cart-badge {
           display:inline-flex; align-items:center; justify-content:center;
           width:18px; height:18px; background:var(--accent); color:var(--bg);
@@ -118,6 +124,7 @@ export default function Navbar({ page, onNav, totalItems, onCartOpen }) {
                 className={`nav-btn ${l.page==='music'?'music-btn':''} ${page===l.page?'active':''}`}
                 onClick={() => go(l.page)}>
                 {l.page === 'music' ? '♫ ' : ''}{l.label}
+                {l.page === 'wishlist' && wishCount > 0 && <span className="wish-badge">{wishCount}</span>}
               </button>
             </li>
           ))}
@@ -144,7 +151,10 @@ export default function Navbar({ page, onNav, totalItems, onCartOpen }) {
             {l.page === 'music' ? '♫ ' : ''}{l.label}
           </button>
         ))}
-        <button className="mobile-cart" onClick={() => { onCartOpen(); setMenuOpen(false) }}>
+        <button className="mobile-link" onClick={() => go('wishlist')}>
+            ♡ Wishlist{wishCount > 0 && ` (${wishCount})`}
+          </button>
+          <button className="mobile-cart" onClick={() => { onCartOpen(); setMenuOpen(false) }}>
           Cart {totalItems > 0 ? `(${totalItems})` : ''}
         </button>
       </div>
