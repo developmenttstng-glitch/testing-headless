@@ -11,6 +11,7 @@ import ArcadePage       from './pages/ArcadePage'
 import AboutPage        from './pages/AboutPage'
 import MusicPage        from './pages/MusicPage'
 import WishlistPage     from './pages/WishlistPage'
+import AlarmPage        from './pages/AlarmPage'
 import { useProducts }  from './hooks/useProducts'
 import { useCart }      from './hooks/useCart'
 import { useWishlist }  from './hooks/useWishlist'
@@ -63,6 +64,7 @@ export default function App() {
       case 'music':    return <MusicPage/>
       case 'about':    return <AboutPage    onNav={handleNav}/>
       case 'wishlist': return <WishlistPage items={wishlist} onNav={handleNav} {...sharedProps}/>
+      case 'alarm':    return <AlarmPage/>
       default:         return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
     }
   }

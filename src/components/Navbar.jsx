@@ -8,6 +8,7 @@ const links = [
   { label: 'Music',    page: 'music' },
   { label: 'About',    page: 'about' },
   { label: 'Wishlist', page: 'wishlist' },
+  { label: 'Alarm',    page: 'alarm' },
 ]
 
 export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen }) {
@@ -54,6 +55,9 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen 
           box-shadow:0 0 6px var(--accent);
         }
         .nav-btn.music-btn { color: #bf00ff; }
+        .nav-btn.alarm-btn { color: #ffcc00; }
+        .nav-btn.alarm-btn:hover, .nav-btn.alarm-btn.active { color: #ffcc00; }
+        .nav-btn.alarm-btn.active::after { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
         .nav-btn.music-btn:hover, .nav-btn.music-btn.active { color: #bf00ff; }
         .nav-btn.music-btn.active::after { background: #bf00ff; box-shadow: 0 0 6px #bf00ff; }
         .nav-right { display:flex; align-items:center; gap:12px; }
@@ -121,9 +125,9 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen 
           {links.map(l => (
             <li key={l.page}>
               <button
-                className={`nav-btn ${l.page==='music'?'music-btn':''} ${page===l.page?'active':''}`}
+                className={`nav-btn ${l.page==='music'?'music-btn':''} ${l.page==='alarm'?'alarm-btn':''} ${page===l.page?'active':''}`}
                 onClick={() => go(l.page)}>
-                {l.page === 'music' ? '♫ ' : ''}{l.label}
+                {l.page === 'music' ? '♫ ' : l.page === 'alarm' ? '⏰ ' : ''}{l.label}
                 {l.page === 'wishlist' && wishCount > 0 && <span className="wish-badge">{wishCount}</span>}
               </button>
             </li>
