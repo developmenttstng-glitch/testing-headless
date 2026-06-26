@@ -7,15 +7,19 @@ import ShopPage from './pages/ShopPage'
 import LookbookPage from './pages/LookbookPage'
 import ArcadePage from './pages/ArcadePage'
 import AboutPage from './pages/AboutPage'
+import MusicPage from './pages/MusicPage'
 import { useProducts } from './hooks/useProducts'
 import { useCart } from './hooks/useCart'
 
 export default function App() {
-  const [page,      setPage]      = useState('home')
-  const [cartOpen,  setCartOpen]  = useState(false)
+  const [page,     setPage]     = useState('home')
+  const [cartOpen, setCartOpen] = useState(false)
 
-  const { products, loading, error } = useProducts(12)
-  const { lines, totalItems, totalPrice, currency, loading: cartLoading, addToCart, goToCheckout } = useCart()
+  const { products, loading } = useProducts(12)
+  const {
+    lines, totalItems, totalPrice, currency,
+    loading: cartLoading, addToCart, goToCheckout,
+  } = useCart()
 
   useEffect(() => { window.scrollTo({ top: 0 }) }, [page])
 
@@ -27,6 +31,7 @@ export default function App() {
       case 'shop':     return <ShopPage     products={products} loading={loading} onAddToCart={addToCart} cartLoading={cartLoading}/>
       case 'lookbook': return <LookbookPage onNav={navigate}/>
       case 'arcade':   return <ArcadePage/>
+      case 'music':    return <MusicPage/>
       case 'about':    return <AboutPage    onNav={navigate}/>
       default:         return <HomePage     products={products} loading={loading} onAddToCart={addToCart} cartLoading={cartLoading} onNav={navigate}/>
     }

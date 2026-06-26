@@ -55,6 +55,7 @@ export default function Footer({ onNav }) {
                 <li><button onClick={() => onNav('shop')}>All products</button></li>
                 <li><button onClick={() => onNav('lookbook')}>Lookbook</button></li>
                 <li><button onClick={() => onNav('about')}>About</button></li>
+                <li><button onClick={() => onNav('music')}>♫ Music</button></li>
               </ul>
             </div>
             <div>
