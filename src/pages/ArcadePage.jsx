@@ -7,10 +7,10 @@ import FlappyBird from '../components/games/FlappyBird'
 import Breakout from '../components/games/Breakout'
 
 const GAMES = [
-  { id:'tetris',   name:'TETRIS',          sub:'Stack & clear',      icon:'▦', hint:'Arrows + Space to pause', hasLevel:true },
+  { id:'tetris',   name:'TETRIS',          sub:'Stack & clear',      icon:'▦', hint:'↑ rotate · ↓ soft drop · Enter hard drop · Space pause', hasLevel:true },
   { id:'snake',    name:'SNAKE',           sub:'Eat & grow',         icon:'◈', hint:'Arrow keys',              hasLevel:false },
-  { id:'invaders', name:'INVADERS',        sub:'Defend the grid',    icon:'◉', hint:'Arrows + Space to shoot', hasLevel:false },
-  { id:'flappy',   name:'FLAPPY NEON',     sub:'Fly through gates',  icon:'◆', hint:'Space / Click to flap',   hasLevel:false },
+  { id:'invaders', name:'INVADERS',        sub:'Defend the grid',    icon:'◉', hint:'← → to move · Auto-fire on · Space for extra shot', hasLevel:false },
+  { id:'flappy',   name:'FLAPPY NEON',     sub:'Fly through gates',  icon:'◆', hint:'Space / Click to flap · Bigger gaps, easier pace', hasLevel:false },
   { id:'breakout', name:'BREAKOUT',        sub:'Smash the matrix',   icon:'◫', hint:'Arrow keys',              hasLevel:false },
 ]
 

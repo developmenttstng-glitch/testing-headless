@@ -8,11 +8,12 @@ export default function Breakout({ onScore, onGameOver, onWin }) {
 
   useEffect(() => {
     const ctx = ref.current.getContext('2d')
-    let bx=CW/2,by=CH-55,dx=3.2,dy=-3.2
+    // Slower initial speed — was 3.2, now 2.2
+    let bx=CW/2,by=CH-55,dx=2.2,dy=-2.2
     let px=CW/2-30,pw=60,score=0,lives=3,running=true
 
     const bricks=[]
-    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
       bricks.push({x:c*(BW+4)+6,y:r*(BH+5)+32,alive:true,col:COLORS[r%COLORS.length]})
 
     function draw(){
@@ -34,24 +35,29 @@ export default function Breakout({ onScore, onGameOver, onWin }) {
       ctx.fillStyle='#ffffff'
       ctx.beginPath();ctx.arc(bx,by,6,0,Math.PI*2);ctx.fill()
       ctx.shadowBlur=0
-      // Lives
+      // Lives & score
       ctx.fillStyle='rgba(0,255,200,0.4)';ctx.font='9px monospace'
       ctx.textAlign='left';ctx.fillText('◆'.repeat(lives),6,16)
-      ctx.textAlign='right';ctx.fillText(score,275,16)
+      ctx.textAlign='right';ctx.fillText(score,CW-6,16)
     }
 
     let frame
     function loop(){
       if(!running)return
       bx+=dx;by+=dy
-      if(bx<=6||bx>=CW-6)dx=-dx
-      if(by<=6)dy=-dy
+      if(bx<=6||bx>=CW-6) dx=-dx
+      if(by<=6) dy=-dy
       if(by>=CH-18-6&&bx>=px&&bx<=px+pw){
-        dy=-Math.abs(dy);dx+=(bx-(px+pw/2))*0.06;by=CH-18-6
+        dy=-Math.abs(dy)
+        // Slight angle variation based on where ball hits paddle
+        dx+=(bx-(px+pw/2))*0.05
+        // Cap speed so it doesn't get crazy
+        dx=Math.max(-4,Math.min(4,dx))
+        by=CH-18-6
       }
       if(by>CH+20){
         lives--;if(lives<=0){running=false;onGameOver(score);return}
-        bx=CW/2;by=CH-60;dx=3.2;dy=-3.2
+        bx=CW/2;by=CH-60;dx=2.2;dy=-2.2
       }
       bricks.forEach(b=>{
         if(!b.alive)return
@@ -64,13 +70,14 @@ export default function Breakout({ onScore, onGameOver, onWin }) {
     }
 
     function onKey(e){
-      if(e.key==='ArrowLeft')px=Math.max(0,px-18)
-      else if(e.key==='ArrowRight')px=Math.min(CW-pw,px+18)
+      if(e.key==='ArrowLeft') px=Math.max(0,px-18)
+      else if(e.key==='ArrowRight') px=Math.min(CW-pw,px+18)
       e.preventDefault()
     }
     window.addEventListener('keydown',onKey);draw();frame=requestAnimationFrame(loop)
     return()=>{running=false;cancelAnimationFrame(frame);window.removeEventListener('keydown',onKey)}
   },[])
 
-  return <canvas ref={ref} width={280} height={320} style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px'}}/>
+  return <canvas ref={ref} width={280} height={320}
+    style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px'}}/>
 }

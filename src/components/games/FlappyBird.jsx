@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 
-const CW=280,CH=320,G=0.38,JUMP=-7,GAP=88,PW=28
+const CW=280,CH=320
+// Slowed down — less gravity, slower pipes, bigger gap
+const GRAVITY=0.28,JUMP=-6,GAP=105,PW=28,PIPE_SPEED=1.6
 
 export default function FlappyBird({ onScore, onGameOver }) {
   const ref = useRef(null)
@@ -10,15 +12,15 @@ export default function FlappyBird({ onScore, onGameOver }) {
     let bird={y:CH/2,v:0},pipes=[],score=0,alive=true,started=false,frame
 
     function addPipe(){
-      const gapY=75+Math.random()*(CH-160)
+      const gapY=90+Math.random()*(CH-200)
       pipes.push({x:CW,gapY,passed:false})
     }
     addPipe()
 
     function draw(){
       ctx.fillStyle='#03050a';ctx.fillRect(0,0,CW,CH)
-      // Starfield
-      ctx.fillStyle='rgba(0,255,200,0.15)'
+      // Stars
+      ctx.fillStyle='rgba(255,255,255,0.25)'
       ;[[30,20],[90,55],[160,30],[220,70],[260,25],[50,100],[180,90],[240,110]].forEach(([x,y])=>{
         ctx.fillRect(x,y,1,1)
       })
@@ -52,24 +54,21 @@ export default function FlappyBird({ onScore, onGameOver }) {
       if(!started){
         ctx.fillStyle='rgba(3,5,10,0.7)';ctx.fillRect(0,0,CW,CH)
         ctx.fillStyle='#00ffc8';ctx.font='bold 14px monospace'
-        ctx.fillText('FLAPPY NEON',CW/2,CH/2-16)
+        ctx.textAlign='center';ctx.fillText('FLAPPY NEON',CW/2,CH/2-16)
         ctx.fillStyle='rgba(0,255,200,0.5)';ctx.font='10px monospace'
         ctx.fillText('SPACE / CLICK TO FLY',CW/2,CH/2+8)
       }
     }
 
-    function flap(){
-      if(!started)started=true
-      bird.v=JUMP
-    }
+    function flap(){ if(!started)started=true; bird.v=JUMP }
 
     function loop(){
       if(!alive)return
       if(started){
-        bird.v+=G;bird.y+=bird.v
-        pipes.forEach(p=>p.x-=2.2)
+        bird.v+=GRAVITY;bird.y+=bird.v
+        pipes.forEach(p=>p.x-=PIPE_SPEED)
         pipes=pipes.filter(p=>p.x+PW>-10)
-        if(!pipes.length||pipes[pipes.length-1].x<CW-175)addPipe()
+        if(!pipes.length||pipes[pipes.length-1].x<CW-185) addPipe()
         pipes.forEach(p=>{
           if(!p.passed&&p.x+PW<60){p.passed=true;score++;onScore(score)}
           if(60+10>p.x&&60-10<p.x+PW){
@@ -78,18 +77,25 @@ export default function FlappyBird({ onScore, onGameOver }) {
             }
           }
         })
-        if(bird.y>CH+20||bird.y<-20){alive=false;cancelAnimationFrame(frame);onGameOver(score);draw();return}
+        if(bird.y>CH+20||bird.y<-20){
+          alive=false;cancelAnimationFrame(frame);onGameOver(score);draw();return
+        }
       }
       draw();frame=requestAnimationFrame(loop)
     }
 
-    function onKey(e){if(e.key===' '){flap();e.preventDefault()}}
+    function onKey(e){ if(e.key===' '){flap();e.preventDefault()} }
     const canvas=ref.current
     window.addEventListener('keydown',onKey)
     canvas.addEventListener('click',flap)
     draw();frame=requestAnimationFrame(loop)
-    return()=>{alive=false;cancelAnimationFrame(frame);window.removeEventListener('keydown',onKey);canvas.removeEventListener('click',flap)}
+    return()=>{
+      alive=false;cancelAnimationFrame(frame)
+      window.removeEventListener('keydown',onKey)
+      canvas.removeEventListener('click',flap)
+    }
   },[])
 
-  return <canvas ref={ref} width={280} height={320} style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px',cursor:'pointer'}}/>
+  return <canvas ref={ref} width={280} height={320}
+    style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px',cursor:'pointer'}}/>
 }
