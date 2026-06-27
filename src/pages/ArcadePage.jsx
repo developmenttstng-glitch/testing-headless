@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useScores } from '../hooks/useScores'
 import Tetris      from '../components/games/Tetris'
 import Snake       from '../components/games/Snake'
@@ -45,6 +45,11 @@ export default function ArcadePage() {
   const [submitted,setSubmitted]= useState(false)
 
   const { getBest, getTop, addScore, refreshScores } = useScores()
+
+  // Load global scores for all games on mount
+  useEffect(() => {
+    GAMES.forEach(g => refreshScores(g.id))
+  }, [])
 
   function openGame(g) {
     setActive(g); setScore(0); setLevel(1)

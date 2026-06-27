@@ -1,8 +1,7 @@
-// Global leaderboard via Supabase
-// Falls back to localStorage if Supabase is unavailable
+import { useState, useEffect, useCallback } from 'react'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://mmbslafosnxbysifyfjb.supabase.co'
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tYnNsYWZvc254YnlzaWZ5ZmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzE5NTYsImV4cCI6MjA5ODE0Nzk1Nn0.IkV0g-8R86bKMRSjO-XDQwblIOZDItVVFjLKDPNng7g'
+const SUPABASE_URL = 'https://mmbslafosnxbysifyfjb.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tYnNsYWZvc254YnlzaWZ5ZmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzE5NTYsImV4cCI6MjA5ODE0Nzk1Nn0.IkV0g-8R86bKMRSjO-XDQwblIOZDItVVFjLKDPNng7g'
 
 const HEADERS = {
   'Content-Type':  'application/json',
@@ -10,100 +9,71 @@ const HEADERS = {
   'Authorization': `Bearer ${SUPABASE_KEY}`,
 }
 
-// ── Local storage helpers (for getBest — instant, no network) ─────────────────
-const LS_KEY = 'neon_scores_v2'
-
-function getLocal() {
-  try { return JSON.parse(localStorage.getItem(LS_KEY)) || {} } catch { return {} }
+// Local best score — just for the "Best" display in the score strip (no network needed)
+function getLocalBest(gameId) {
+  try { return JSON.parse(localStorage.getItem('neon_scores_v2') || '{}')[gameId] || 0 } catch { return 0 }
 }
-
 function setLocalBest(gameId, score) {
-  const data = getLocal()
-  if (!data[gameId] || score > data[gameId]) {
-    data[gameId] = score
-    localStorage.setItem(LS_KEY, JSON.stringify(data))
-  }
+  try {
+    const d = JSON.parse(localStorage.getItem('neon_scores_v2') || '{}')
+    if (!d[gameId] || score > d[gameId]) { d[gameId] = score; localStorage.setItem('neon_scores_v2', JSON.stringify(d)) }
+  } catch {}
 }
 
-// ── Supabase helpers ──────────────────────────────────────────────────────────
-async function sbInsert(gameId, name, score) {
+// Fetch top scores from Supabase
+async function fetchTop(gameId, limit = 10) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/scores?game_id=eq.${gameId}&order=score.desc&limit=${limit}`,
+    { headers: HEADERS }
+  )
+  if (!res.ok) throw new Error(res.status)
+  const rows = await res.json()
+  return rows.map(r => ({ name: r.name, score: r.score, date: r.created_at?.slice(0,10) }))
+}
+
+// Insert score to Supabase
+async function insertScore(gameId, name, score) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/scores`, {
     method:  'POST',
     headers: { ...HEADERS, 'Prefer': 'return=minimal' },
     body:    JSON.stringify({ game_id: gameId, name, score }),
   })
-  if (!res.ok) throw new Error(`Insert failed: ${res.status}`)
+  if (!res.ok) throw new Error(res.status)
 }
 
-async function sbGetTop(gameId, limit = 10) {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/scores?game_id=eq.${gameId}&order=score.desc&limit=${limit}`,
-    { headers: HEADERS }
-  )
-  if (!res.ok) throw new Error(`Fetch failed: ${res.status}`)
-  return await res.json()
-}
-
-async function sbGetBest(gameId) {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/scores?game_id=eq.${gameId}&order=score.desc&limit=1`,
-    { headers: HEADERS }
-  )
-  if (!res.ok) return 0
-  const rows = await res.json()
-  return rows[0]?.score || 0
-}
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
 export function useScores() {
+  // topScores — global state: { [gameId]: [{name, score, date}] }
+  const [topScores, setTopScores] = useState({})
 
-  // getBest — returns local best instantly (no network delay in UI)
   function getBest(gameId) {
-    return getLocal()[gameId] || 0
+    return getLocalBest(gameId)
   }
 
-  // getTop — returns cached local scores instantly
-  // ArcadePage calls this for display; refreshTopScores updates from Supabase
   function getTop(gameId, limit = 10) {
-    try {
-      const cached = JSON.parse(localStorage.getItem(`neon_top_${gameId}`)) || []
-      return cached.slice(0, limit)
-    } catch { return [] }
+    return (topScores[gameId] || []).slice(0, limit)
   }
 
-  // addScore — saves to localStorage + Supabase
-  async function addScore(gameId, score, name = 'Anonymous') {
-    if (!score || score <= 0) return
-
-    // Always save local best
-    setLocalBest(gameId, score)
-
-    // Save to Supabase
+  async function refreshScores(gameId) {
     try {
-      await sbInsert(gameId, name, score)
-      // Refresh top scores for this game in background
-      const top = await sbGetTop(gameId, 10)
-      const formatted = top.map(r => ({ name: r.name, score: r.score, date: r.created_at?.slice(0,10) }))
-      localStorage.setItem(`neon_top_${gameId}`, JSON.stringify(formatted))
+      const scores = await fetchTop(gameId, 10)
+      setTopScores(prev => ({ ...prev, [gameId]: scores }))
+      return scores
     } catch (err) {
-      console.warn('Supabase unavailable, score saved locally only:', err.message)
-      // Fallback: save to local top scores
-      const local = getTop(gameId)
-      const updated = [...local, { name, score, date: new Date().toISOString().slice(0,10) }]
-        .sort((a,b) => b.score - a.score)
-        .slice(0, 10)
-      localStorage.setItem(`neon_top_${gameId}`, JSON.stringify(updated))
+      console.warn('Could not fetch scores from Supabase:', err.message)
+      return []
     }
   }
 
-  // refreshScores — call this to pull latest from Supabase for a game
-  async function refreshScores(gameId) {
+  async function addScore(gameId, score, name = 'Anonymous') {
+    if (!score || score <= 0) return
+    setLocalBest(gameId, score)
     try {
-      const top = await sbGetTop(gameId, 10)
-      const formatted = top.map(r => ({ name: r.name, score: r.score, date: r.created_at?.slice(0,10) }))
-      localStorage.setItem(`neon_top_${gameId}`, JSON.stringify(formatted))
-      return formatted
-    } catch { return getTop(gameId) }
+      await insertScore(gameId, name, score)
+      // Refresh immediately so new score shows
+      await refreshScores(gameId)
+    } catch (err) {
+      console.warn('Could not save score to Supabase:', err.message)
+    }
   }
 
   return { getBest, getTop, addScore, refreshScores }
