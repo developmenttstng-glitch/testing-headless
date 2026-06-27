@@ -262,7 +262,7 @@ export default function Chess({ onScore, onGameOver }) {
     setCaptured({w:[],b:[]}); setGameOver(false); setPromotion(null)
   }
 
-  const SQ = 44
+  const SQ = 38
   const boardSize = SQ * 8
 
   return (

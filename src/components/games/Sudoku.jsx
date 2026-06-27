@@ -162,7 +162,7 @@ export default function Sudoku({ onScore, onGameOver, onWin }) {
 
   if (!grid) return <div style={{color:'var(--accent)',fontFamily:'var(--mono)'}}>Loading...</div>
 
-  const SQ = 44
+  const SQ = 36
 
   function cellColor(r, c) {
     const locked = puzzle[r][c] !== 0
@@ -187,7 +187,7 @@ export default function Sudoku({ onScore, onGameOver, onWin }) {
         .sudoku-timer { color:var(--accent); letter-spacing:0.12em; }
         .sudoku-mistakes { color:#ff003c; }
         .sudoku-board { border:2px solid rgba(0,255,200,0.4); cursor:pointer; box-shadow:0 0 20px rgba(0,255,200,0.1); }
-        .sudoku-numpad { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; width:${SQ*9}px; }
+        .sudoku-numpad { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; width:324px; }
         .num-btn {
           padding:8px 0; font-family:var(--mono); font-size:14px; font-weight:bold;
           border:1px solid rgba(0,255,200,0.2); background:transparent;
