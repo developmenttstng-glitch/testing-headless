@@ -65,7 +65,7 @@ export default function ColorMatch({ onScore, onGameOver }) {
           clearInterval(timerId)
           lives--
           streak = 0
-          flash = 8; flashOk = false
+          flash = 6; flashOk = false
           if(lives <= 0) {
             alive = false
             onGameOver(score)
@@ -213,19 +213,23 @@ export default function ColorMatch({ onScore, onGameOver }) {
             const pts = streak > 2 ? 20 : 10
             score += pts
             onScore(score)
-            flash = 6; flashOk = true
-            setTimeout(newRound, 400)
+            // Correct — brief green flash then next round immediately
+            flash = 4; flashOk = true
+            draw()
+            setTimeout(newRound, 250)
           } else {
             streak = 0
             lives--
+            // Wrong — red flash, short pause so player sees the mistake
             flash = 6; flashOk = false
+            draw()
             if(lives <= 0) {
               alive = false
               onGameOver(score)
               draw()
               return
             }
-            setTimeout(newRound, 500)
+            setTimeout(newRound, 600)
           }
           draw()
           return
@@ -233,11 +237,17 @@ export default function ColorMatch({ onScore, onGameOver }) {
       }
     }
 
+    // Animate flash fade
+    const flashTimer = setInterval(() => {
+      if(flash > 0) { flash--; draw() }
+    }, 40)
+
     ref.current.addEventListener('click', onClick)
     newRound()
 
     return () => {
       clearInterval(timerId)
+      clearInterval(flashTimer)
       ref.current?.removeEventListener('click', onClick)
     }
   }, [])
