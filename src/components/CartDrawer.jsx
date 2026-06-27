@@ -1,4 +1,4 @@
-export default function CartDrawer({ lines, totalPrice, currency, onClose, onCheckout, cartLoading }) {
+export default function CartDrawer({ lines, totalPrice, currency, onClose, onCheckout, cartLoading, customer, onLogin }) {
   return (
     <>
       <style>{`
@@ -96,6 +96,20 @@ export default function CartDrawer({ lines, totalPrice, currency, onClose, onChe
         </div>
 
         <div className="cart-footer">
+          {customer && (
+            <div style={{
+              display:'flex', alignItems:'center', gap:'8px',
+              padding:'8px 0', marginBottom:'8px',
+              borderBottom:'1px solid var(--border)',
+              fontFamily:'var(--mono)', fontSize:'10px',
+            }}>
+              <span style={{color:'var(--accent)'}}>◈</span>
+              <div>
+                <div style={{color:'var(--text)'}}>{customer.firstName || customer.name}</div>
+                <div style={{color:'var(--muted)',fontSize:'9px'}}>{customer.email}</div>
+              </div>
+            </div>
+          )}
           <div className="cart-total">
             <span className="cart-total-label">Total</span>
             <span className="cart-total-val">{currency} ${totalPrice}</span>
@@ -103,6 +117,20 @@ export default function CartDrawer({ lines, totalPrice, currency, onClose, onChe
           <button className="checkout-btn" onClick={onCheckout} disabled={lines.length === 0 || cartLoading}>
             {cartLoading ? 'Processing...' : 'Proceed to checkout →'}
           </button>
+          {!customer && lines.length > 0 && (
+            <button onClick={onLogin} style={{
+              width:'100%', padding:'9px', marginTop:'8px',
+              background:'transparent', border:'1px solid rgba(0,255,200,0.25)',
+              color:'var(--muted)', fontFamily:'var(--mono)', fontSize:'10px',
+              letterSpacing:'0.12em', textTransform:'uppercase', cursor:'pointer',
+              transition:'all 0.15s',
+            }}
+            onMouseOver={e=>e.target.style.color='var(--accent)'}
+            onMouseOut={e=>e.target.style.color='var(--muted)'}
+            >
+              Sign in to pre-fill details
+            </button>
+          )}
         </div>
       </div>
     </>

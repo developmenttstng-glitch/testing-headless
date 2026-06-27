@@ -46,11 +46,14 @@ function getShopId() {
 
 export function useCustomer() {
   const [customer,    setCustomer]    = useState(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      return saved ? JSON.parse(saved) : null
+    } catch { return null }
   })
-  const [token,       setToken]       = useState(() =>
-    localStorage.getItem(TOKEN_KEY) || null
-  )
+  const [token,       setToken]       = useState(() => {
+    return localStorage.getItem(TOKEN_KEY) || null
+  })
   const [loading,     setLoading]     = useState(false)
   const [error,       setError]       = useState(null)
 
@@ -143,15 +146,13 @@ export function useCustomer() {
       localStorage.setItem(TOKEN_KEY, accessToken)
       setToken(accessToken)
 
-      // Fetch customer profile
-      await fetchCustomerProfile(accessToken)
+      // Fetch customer profile and store it
+      const profile = await fetchCustomerProfile(accessToken)
 
       // Clean up PKCE values
       sessionStorage.removeItem('pkce_verifier')
       sessionStorage.removeItem('pkce_state')
 
-      // Remove code from URL
-      window.history.replaceState({}, '', '/account')
       return true
 
     } catch (err) {

@@ -38,7 +38,20 @@ export default function App() {
   const [musicOn,    setMusicOn]    = useState(false)
 
   const { products, loading }       = useProducts(12)
-  const { lines, totalItems, totalPrice, currency, loading: cartLoading, addToCart, goToCheckout } = useCart()
+  const { lines, totalItems, totalPrice, currency, loading: cartLoading, addToCart, goToCheckout: _goToCheckout } = useCart()
+
+  // Wrap checkout to append customer token so Shopify pre-fills their details
+  function goToCheckout() {
+    const token = localStorage.getItem('neon_customer_token')
+    if (token && window._cartCheckoutUrl) {
+      // Append customer token to checkout URL for pre-fill
+      const url = new URL(window._cartCheckoutUrl)
+      url.searchParams.set('logged_in', 'true')
+      window.location.href = url.toString()
+    } else {
+      _goToCheckout()
+    }
+  }
   const { items: wishlist, toggle: toggleWishlist, isWishlisted, count: wishCount } = useWishlist()
   const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
   const { customer, isLoggedIn, loading: authLoading, error: authError,
@@ -82,7 +95,7 @@ export default function App() {
       case 'account':  return isLoggedIn
         ? <AccountPage customer={customer} onLogout={logout} fetchOrders={fetchOrders} onNav={handleNav}/>
         : <LoginPromptPage onLogin={login} authError={authError}/>
-      case 'callback': return <CallbackPage handleCallback={handleCallback} onNav={handleNav}/>
+      case 'callback': return <CallbackPage handleCallback={handleCallback} onNav={handleNav} isLoggedIn={isLoggedIn}/>
       default:         return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
     }
   }
@@ -110,6 +123,8 @@ export default function App() {
           onClose={() => setCartOpen(false)}
           onCheckout={goToCheckout}
           cartLoading={cartLoading}
+          customer={customer}
+          onLogin={() => { setCartOpen(false); login() }}
         />
       )}
 

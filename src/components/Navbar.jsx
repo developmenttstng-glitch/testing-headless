@@ -143,8 +143,9 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen,
         </ul>
         <div className="nav-right">
           {customer ? (
-            <button className="account-btn logged-in" onClick={onAccount}>
-              {customer.firstName || customer.email?.split('@')[0] || 'Account'}
+            <button className="account-btn logged-in" onClick={onAccount}
+              title={customer.email}>
+              ◈ {customer.firstName || customer.name?.split(' ')[0] || customer.email?.split('@')[0] || 'Account'}
             </button>
           ) : (
             <button className="account-btn" onClick={onLogin}>
