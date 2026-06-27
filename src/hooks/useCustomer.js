@@ -30,6 +30,10 @@ function getClientId() {
 }
 
 function getRedirectUri() {
+  // Always use the production URL — Shopify requires HTTPS
+  // localhost is not allowed as a redirect URI
+  const prod = import.meta.env.VITE_APP_URL
+  if (prod) return `${prod}/account/callback`
   return `${window.location.origin}/account/callback`
 }
 
@@ -65,6 +69,9 @@ export function useCustomer() {
         return
       }
 
+      // Extract just the store name (without .myshopify.com)
+      const storeName = shop.replace('.myshopify.com', '')
+
       const params = new URLSearchParams({
         client_id:             clientId,
         response_type:         'code',
@@ -75,7 +82,7 @@ export function useCustomer() {
         code_challenge_method: 'S256',
       })
 
-      const authUrl = `https://shopify.com/authentication/${shop.replace('.myshopify.com','')}/oauth/authorize?${params}`
+      const authUrl = `https://shopify.com/authentication/${storeName}/oauth/authorize?${params}`
       window.location.href = authUrl
     } catch (err) {
       setError('Login failed. Please try again.')
@@ -108,8 +115,9 @@ export function useCustomer() {
       const shop     = getShopDomain()
       const clientId = getClientId()
 
+      const storeName = shop.replace('.myshopify.com', '')
       const tokenRes = await fetch(
-        `https://shopify.com/authentication/${shop.replace('.myshopify.com','')}/oauth/token`,
+        `https://shopify.com/authentication/${storeName}/oauth/token`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -155,9 +163,10 @@ export function useCustomer() {
   // ── Fetch customer profile ───────────────────────────────────────────────
   const fetchCustomerProfile = useCallback(async (accessToken) => {
     try {
-      const shop = getShopDomain()
+      const shop      = getShopDomain()
+      const storeName = shop.replace('.myshopify.com', '')
       const res  = await fetch(
-        `https://shopify.com/authentication/${shop.replace('.myshopify.com','')}/oauth/userinfo`,
+        `https://shopify.com/authentication/${storeName}/oauth/userinfo`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       if (!res.ok) throw new Error('Profile fetch failed')
