@@ -10,7 +10,7 @@ import Pong        from '../components/games/Pong'
 import Game2048    from '../components/games/Game2048'
 
 const GAMES = [
-  { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft drop · SPC hard drop · P pause', hasLevel:true },
+  { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
   { id:'snake',    name:'SNAKE',          icon:'◈', hint:'Arrow keys to steer', hasLevel:false },
   { id:'invaders', name:'INVADERS',       icon:'◉', hint:'← → move · Auto-fire · SPC extra shot', hasLevel:false },
   { id:'flappy',   name:'FLAPPY NEON',    icon:'◆', hint:'Space / click to flap', hasLevel:false },
