@@ -71,6 +71,8 @@ export default function App() {
   function handleNav(p) { if (p === 'music') setMusicOn(true); navigate(p) }
 
   function handleViewDetail(product) {
+    console.log('[Modal] handleViewDetail called:', product.title)
+    console.trace()
     addRecentlyViewed(product)
     setDetailProd(product)
   }
@@ -139,7 +141,7 @@ export default function App() {
           product={detailProd}
           onAddToCart={addToCart}
           cartLoading={cartLoading}
-          onClose={() => setDetailProd(null)}
+          onClose={() => { console.log('[Modal] onClose called'); setDetailProd(null) }}
           isWishlisted={isWishlisted}
           onToggleWishlist={toggleWishlist}
         />
