@@ -401,7 +401,6 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                       {activeOrder.shippingAddress.address2 && <>{activeOrder.shippingAddress.address2}<br/></>}
                       {activeOrder.shippingAddress.city}, {activeOrder.shippingAddress.province} {activeOrder.shippingAddress.zip}<br/>
                       {activeOrder.shippingAddress.country}
-                      {activeOrder.shippingAddress.phone && <><br/>{activeOrder.shippingAddress.phone}</>}
                     </div>
                   </div>
                 )}

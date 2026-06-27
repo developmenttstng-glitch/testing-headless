@@ -274,7 +274,6 @@ export function useCustomer() {
                     firstName lastName
                     address1 address2
                     city province country zip
-                    phone
                   }
                   lineItems(first: 10) {
                     nodes {
