@@ -13,7 +13,7 @@ const STORE_ID = '69915508787'  // numeric store ID from Shopify admin URL
 
 function getClientId()    { return import.meta.env.VITE_SHOPIFY_CUSTOMER_CLIENT_ID || '' }
 function getRedirectUri() { return `${APP_URL}/account/callback` }
-function tokenUrl()       { return `https://shopify.com/${STORE_ID}/account/oauth/token` }
+function tokenUrl()       { return `https://shopify.com/authentication/${STORE_ID}/oauth/token` }
 function profileUrl()     { return `https://shopify.com/${STORE_ID}/account/customer/api/unstable/graphql?operation=Profile` }
 
 // ── PKCE helpers ──────────────────────────────────────────────────────────────
