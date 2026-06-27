@@ -11,9 +11,9 @@ const DEFAULT_PLAYLISTS = [
   { id: 5, title: 'Eheads, Parokya, Rivermaya',       playlistId: 'PLiy0XOfUv4hG015r78ijWECJ-BZHdxyEJ' },
   { id: 6, title: '6Cyclemind, Cueshe, Sponge Cola, SugarFree',       playlistId: 'PLEbKodTRJs9--8H7ACBA7wnJIR53Eu8BW' },
   { id: 7, title: 'Skate Avenue AI',       playlistId: 'RDEMpCaW2ddXCkx_caBdDrdDAg' },
-  { id: 8, title: 'Playlist 8',       playlistId: '' },
-  { id: 9, title: 'Playlist 9',       playlistId: '' },
-  { id: 10, title: 'Playlist 10',     playlistId: '' },
+  { id: 8, title: 'Taylor Swift',       playlistId: 'RDEMb1vAi4rwXXeDlr7NZ68C_w' },
+  { id: 9, title: 'Olivia Rodrigo and Billie Eilish',       playlistId: 'PL12MYS0PFo7JpL5ab4Civ3Ewb65ql0hCp' },
+  { id: 10, title: 'Olivia Dean',     playlistId: 'RDEMF7kHBK3QKF0Xo0EPSPhNmQ' },
 ]
 
 const STORAGE_KEY = 'neon_playlists'
