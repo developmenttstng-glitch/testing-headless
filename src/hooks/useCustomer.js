@@ -282,6 +282,16 @@ export function useCustomer() {
                       variantTitle
                     }
                   }
+                  fulfillments(first: 5) {
+                    nodes {
+                      displayStatus
+                      trackingInfo {
+                        company
+                        number
+                        url
+                      }
+                    }
+                  }
                 }
               }
             }

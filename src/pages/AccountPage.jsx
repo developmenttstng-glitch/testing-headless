@@ -414,27 +414,24 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                     (activeOrder.fulfillments.nodes).map((f, i) => (
                       <div className="od-fulfillment" key={i}>
                         <div className="od-fulfillment-status" style={{color: statusColor(f.displayStatus)}}>
-                          {f.displayStatus}
+                          {f.displayStatus || 'Fulfilled'}
                         </div>
-                        {f.estimatedDeliveryAt && (
-                          <div style={{fontSize:'11px',color:'var(--muted)',fontFamily:'var(--mono)',marginBottom:'6px'}}>
-                            Est. delivery: {fmt(f.estimatedDeliveryAt)}
-                          </div>
-                        )}
-                        {(f.trackingInfo || []).map((t, j) => (
-                          <div className="od-tracking" key={j}>
-                            <span className="od-tracking-lbl">{t.company}</span>
-                            <span className="od-tracking-num">{t.number}</span>
-                            {t.url && (
-                              <a href={t.url} target="_blank" rel="noreferrer"
-                                className="od-track-link">
-                                Track →
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                        {(!f.trackingInfo || f.trackingInfo.length === 0) && (
-                          <div className="od-no-tracking">No tracking info yet</div>
+                        {/* trackingInfo is an array of tracking objects */}
+                        {(f.trackingInfo || []).length > 0 ? (
+                          (f.trackingInfo).map((t, j) => (
+                            <div className="od-tracking" key={j}>
+                              {t.company && <span className="od-tracking-lbl">{t.company}</span>}
+                              {t.number && <span className="od-tracking-num">{t.number}</span>}
+                              {t.url && (
+                                <a href={t.url} target="_blank" rel="noreferrer"
+                                  className="od-track-link">
+                                  Track →
+                                </a>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="od-no-tracking">No tracking number yet</div>
                         )}
                       </div>
                     ))
