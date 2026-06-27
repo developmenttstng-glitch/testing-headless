@@ -61,8 +61,8 @@ export default function ArcadePage() {
     refreshScores(g.id)
   }
 
-  function handleGameOver(s) { addScore(active.id, s); setScore(s); setEnded(true) }
-  function handleWin(s)      { addScore(active.id, s); setScore(s); setEnded(true); setWon(true) }
+  function handleGameOver(s) { setScore(s); setEnded(true) }
+  function handleWin(s)      { setScore(s); setEnded(true); setWon(true) }
   function handleScore(s,lv) { setScore(s); if(lv) setLevel(lv) }
 
   function submitName() {
