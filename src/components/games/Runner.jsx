@@ -1,19 +1,24 @@
 import { useEffect, useRef } from 'react'
 
-const CW=280, CH=320, GND=CH-40, GRAVITY=18, JUMP=-380, BASE_SPEED=180
+const CW=280, CH=320, GND=CH-40
 
 export default function Runner({ onScore, onGameOver }) {
   const ref = useRef(null)
 
   useEffect(() => {
     const ctx = ref.current.getContext('2d')
-    let player  = {x:50,y:GND,vy:0,w:20,h:28,onGround:true}
-    let obstacles=[], score=0, alive=true, started=false, last=null
-    let spawnTimer=0, spawnInterval=1.8, elapsed=0
+    let player  = {x:50, y:GND, vy:0, w:20, h:28, onGround:true}
+    let obstacles=[], score=0, alive=true, started=false
+    let frame=0, spawnTimer=0, spawnInterval=80
+
+    // Back to frame-based like original but cap at 60fps
+    const GRAVITY   = 0.5
+    const JUMP      = -10
+    const BASE_SPEED= 3
 
     function spawnObs() {
       const h=20+Math.random()*40
-      obstacles.push({x:CW,y:GND-h+28,w:16,h,col:Math.random()>0.5?'#ff003c':'#bf00ff'})
+      obstacles.push({x:CW, y:GND-h+28, w:16, h, col:Math.random()>0.5?'#ff003c':'#bf00ff'})
     }
     spawnObs()
 
@@ -23,8 +28,6 @@ export default function Runner({ onScore, onGameOver }) {
       ;[[30,40],[90,80],[160,50],[220,30],[250,70],[60,120],[180,100]].forEach(([x,y])=>ctx.fillRect(x,y,1,1))
       ctx.strokeStyle='rgba(0,255,200,0.2)'; ctx.lineWidth=1
       ctx.beginPath(); ctx.moveTo(0,GND+28); ctx.lineTo(CW,GND+28); ctx.stroke()
-      ctx.strokeStyle='rgba(0,255,200,0.04)'; ctx.lineWidth=0.5
-      for(let x=0;x<CW;x+=40){ctx.beginPath();ctx.moveTo(x,GND+28);ctx.lineTo(x,CH);ctx.stroke()}
 
       ctx.shadowColor='#00ffc8'; ctx.shadowBlur=8
       ctx.fillStyle='#00ffc8'; ctx.fillRect(player.x,player.y,player.w,player.h)
@@ -40,14 +43,14 @@ export default function Runner({ onScore, onGameOver }) {
 
       ctx.fillStyle='rgba(0,255,200,0.6)'; ctx.font='bold 14px monospace'
       ctx.textAlign='right'; ctx.fillText(score,CW-8,20)
-      const speed = BASE_SPEED + elapsed*10
+      const speed=(BASE_SPEED+frame/600).toFixed(1)
       ctx.fillStyle='rgba(0,255,200,0.2)'; ctx.font='8px monospace'
-      ctx.textAlign='left'; ctx.fillText(`SPD ${speed.toFixed(0)}`,8,20)
+      ctx.textAlign='left'; ctx.fillText(`SPD ${speed}`,8,20)
 
       if(!started){
         ctx.fillStyle='rgba(3,5,10,0.75)'; ctx.fillRect(0,0,CW,CH)
-        ctx.fillStyle='#00ffc8'; ctx.font='bold 13px monospace'
-        ctx.textAlign='center'; ctx.fillText('ENDLESS RUNNER',CW/2,CH/2-14)
+        ctx.fillStyle='#00ffc8'; ctx.font='bold 13px monospace'; ctx.textAlign='center'
+        ctx.fillText('ENDLESS RUNNER',CW/2,CH/2-14)
         ctx.fillStyle='rgba(0,255,200,0.5)'; ctx.font='10px monospace'
         ctx.fillText('SPACE / CLICK TO START',CW/2,CH/2+8)
       }
@@ -58,37 +61,38 @@ export default function Runner({ onScore, onGameOver }) {
       if(player.onGround){player.vy=JUMP;player.onGround=false}
     }
 
-    let animFrame
+    // Frame limiter — target 60fps regardless of monitor
+    let lastTime=0, animFrame
     function loop(ts) {
       if(!alive) return
-      if(last===null){last=ts}
-      const dt = Math.min((ts-last)/1000, 0.05)
-      last=ts
+      animFrame = requestAnimationFrame(loop)
+
+      // Limit to ~60fps
+      const elapsed = ts - lastTime
+      if(elapsed < 14) return  // skip if less than ~14ms since last frame
+      lastTime = ts
 
       if(started){
-        elapsed += dt
-        score = Math.floor(elapsed*6)
+        frame++
+        score = Math.floor(frame/6)
         onScore(score)
 
-        const speed = BASE_SPEED + elapsed*10
+        const speed = BASE_SPEED + frame/600
 
-        // Physics
-        player.vy += GRAVITY * dt * 60 * 0.16
-        player.y  += player.vy * dt
+        player.vy += GRAVITY
+        player.y  += player.vy
         if(player.y >= GND){ player.y=GND; player.vy=0; player.onGround=true }
 
-        // Spawn
-        spawnTimer += dt
-        if(spawnTimer >= spawnInterval){
+        spawnTimer++
+        if(spawnTimer>=spawnInterval){
           spawnTimer=0
-          spawnInterval = Math.max(0.9, 1.8-elapsed*0.05)
+          spawnInterval=Math.max(45,80-frame/100)
           spawnObs()
         }
 
-        obstacles.forEach(o=>{ o.x -= speed*dt })
-        obstacles = obstacles.filter(o=>o.x+o.w>-10)
+        obstacles.forEach(o=>{ o.x-=speed })
+        obstacles=obstacles.filter(o=>o.x+o.w>-10)
 
-        // Collision
         for(const o of obstacles){
           if(player.x+player.w-4>o.x&&player.x+4<o.x+o.w&&player.y+player.h-4>o.y&&player.y+4<o.y+o.h){
             alive=false; cancelAnimationFrame(animFrame); onGameOver(score); draw(); return
@@ -96,7 +100,6 @@ export default function Runner({ onScore, onGameOver }) {
         }
       }
       draw()
-      animFrame = requestAnimationFrame(loop)
     }
 
     function onKey(e){if(e.key===' '){jump();e.preventDefault()}}

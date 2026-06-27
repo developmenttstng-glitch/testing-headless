@@ -8,8 +8,8 @@ import Breakout    from '../components/games/Breakout'
 import Runner      from '../components/games/Runner'
 import Pong        from '../components/games/Pong'
 import Game2048    from '../components/games/Game2048'
-import Chess       from '../components/games/Chess'
-import Sudoku      from '../components/games/Sudoku'
+import MemoryMatch from '../components/games/MemoryMatch'
+import Minesweeper from '../components/games/Minesweeper'
 
 const GAMES = [
   { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
@@ -20,8 +20,8 @@ const GAMES = [
   { id:'runner',   name:'RUNNER',         icon:'▶', hint:'Space / click to jump', hasLevel:false },
   { id:'pong',     name:'PONG',           icon:'◐', hint:'W/S or ↑/↓ to move · Space to start', hasLevel:false },
   { id:'2048',     name:'2048',           icon:'◧', hint:'Arrow keys or swipe to slide tiles', hasLevel:false },
-  { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then click destination · You are White · AI plays Black', hasLevel:false },
-  { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N for note mode · Backspace to delete', hasLevel:false },
+  { id:'memory',   name:'MEMORY',         icon:'◈', hint:'Click cards to flip · match all pairs · fewer moves = higher score', hasLevel:false },
+  { id:'mines',    name:'MINESWEEPER',    icon:'💣', hint:'Left click = reveal · Right click = flag · avoid the mines', hasLevel:false },
 ]
 
 export default function ArcadePage() {
