@@ -10,6 +10,8 @@ import Pong        from '../components/games/Pong'
 import Game2048    from '../components/games/Game2048'
 import MemoryMatch from '../components/games/MemoryMatch'
 import Minesweeper from '../components/games/Minesweeper'
+import Chess       from '../components/games/Chess'
+import Sudoku      from '../components/games/Sudoku'
 
 const GAMES = [
   { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
@@ -22,6 +24,8 @@ const GAMES = [
   { id:'2048',     name:'2048',           icon:'◧', hint:'Arrow keys or swipe to slide tiles', hasLevel:false },
   { id:'memory',   name:'MEMORY',         icon:'◈', hint:'Click cards to flip · match all pairs · fewer moves = higher score', hasLevel:false },
   { id:'mines',    name:'MINESWEEPER',    icon:'💣', hint:'Left click = reveal · Right click = flag · avoid the mines', hasLevel:false },
+  { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then destination · You are White · Double-click to reset', hasLevel:false },
+  { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N = note mode · Arrow keys to navigate', hasLevel:false },
 ]
 
 export default function ArcadePage() {
