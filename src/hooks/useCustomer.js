@@ -260,12 +260,33 @@ export function useCustomer() {
                   processedAt
                   financialStatus
                   fulfillmentStatus
-                  totalPrice { amount currencyCode }
-                  statusPageUrl
-                  lineItems(first: 5) {
+                  totalPrice    { amount currencyCode }
+                  subtotal      { amount currencyCode }
+                  totalShipping { amount currencyCode }
+                  totalTax      { amount currencyCode }
+                  shippingAddress {
+                    firstName lastName
+                    address1 address2
+                    city province country zip
+                    phone
+                  }
+                  lineItems(first: 10) {
                     nodes {
                       title
                       quantity
+                      variantTitle
+                      originalTotalPrice { amount currencyCode }
+                    }
+                  }
+                  fulfillments(first: 5) {
+                    nodes {
+                      displayStatus
+                      estimatedDeliveryAt
+                      trackingInfo(first: 3) {
+                        company
+                        number
+                        url
+                      }
                     }
                   }
                 }
