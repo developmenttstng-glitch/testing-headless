@@ -135,16 +135,14 @@ export default function App() {
       )}
 
       {detailProd && (
-        <div onClick={e => e.stopPropagation()} style={{position:'fixed',inset:0,zIndex:399}}>
-          <ProductDetailPage
-            product={detailProd}
-            onAddToCart={addToCart}
-            cartLoading={cartLoading}
-            onClose={() => setDetailProd(null)}
-            isWishlisted={isWishlisted}
-            onToggleWishlist={toggleWishlist}
-          />
-        </div>
+        <ProductDetailPage
+          product={detailProd}
+          onAddToCart={addToCart}
+          cartLoading={cartLoading}
+          onClose={() => setDetailProd(null)}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={toggleWishlist}
+        />
       )}
 
       {musicOn && page !== 'music' && <MiniPlayer onNav={handleNav}/>}
