@@ -1,4 +1,4 @@
-// v12 — auth callback fix
+// v14 — auth callback fix
 import { useState, useEffect } from 'react'
 import Navbar            from './components/Navbar'
 import Footer            from './components/Footer'
@@ -25,9 +25,8 @@ export default function App() {
   const [page,       setPage]       = useState(() => {
     const path   = window.location.pathname
     const search = window.location.search
-    // Detect OAuth callback
-    if (path === '/account/callback') return 'callback'
-    if (search.includes('code=') && search.includes('state=')) return 'callback'
+    // Detect OAuth callback — must have code AND state params
+    if (path === '/account/callback' && search.includes('code=') && search.includes('state=')) return 'callback'
     // If token exists in localStorage, go to account page
     if (localStorage.getItem('neon_customer_token') && localStorage.getItem('neon_customer')) {
       return 'account'

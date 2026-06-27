@@ -5,27 +5,17 @@ export default function CallbackPage({ handleCallback, onNav }) {
   const ran = useRef(false)
 
   useEffect(() => {
-    // Strict double-run guard
     if (ran.current) return
     ran.current = true
 
-    // Clear the URL immediately so refreshing doesn't re-trigger
-    const code  = new URLSearchParams(window.location.search).get('code')
-    const state = new URLSearchParams(window.location.search).get('state')
-
-    if (!code || !state) {
-      setStatus('error')
-      setTimeout(() => onNav('home'), 2000)
-      return
-    }
-
-    // Replace URL to prevent re-runs on refresh
-    window.history.replaceState({}, document.title, '/account/callback')
-
+    // Run the callback — it reads code/state from URL internally
     handleCallback().then(success => {
+      // NOW clear the URL so refresh doesn't re-trigger
+      window.history.replaceState({}, document.title, '/account/callback-done')
+
       if (success) {
         setStatus('success')
-        setTimeout(() => onNav('account'), 600)
+        setTimeout(() => onNav('account'), 800)
       } else {
         setStatus('error')
         setTimeout(() => onNav('home'), 2500)
@@ -51,7 +41,7 @@ export default function CallbackPage({ handleCallback, onNav }) {
           border-top-color:var(--accent); border-radius:50%;
           animation:spin 0.8s linear infinite;
         }
-        @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes spin { to { transform:rotate(360deg) } }
       `}</style>
       <div className="callback-page">
         {status === 'processing' && (
