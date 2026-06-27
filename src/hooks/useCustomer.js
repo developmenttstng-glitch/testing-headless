@@ -38,6 +38,10 @@ function decodeJWT(token) {
   }
 }
 
+// Module-level flag — survives re-renders, prevents double callback execution
+let callbackInProgress = false
+let callbackCompleted  = false
+
 export function useCustomer() {
   const [customer, setCustomer] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
@@ -91,17 +95,30 @@ export function useCustomer() {
 
   // ── Handle OAuth callback ─────────────────────────────────────────────────
   const handleCallback = useCallback(async () => {
+    // Prevent double execution — auth codes are single-use
+    if (callbackInProgress || callbackCompleted) {
+      console.log('Callback already ran — skipping')
+      // If already completed successfully, return true so nav works
+      return callbackCompleted
+    }
+    callbackInProgress = true
+
     const params   = new URLSearchParams(window.location.search)
     const code     = params.get('code')
     const state    = params.get('state')
     const errParam = params.get('error')
 
-    if (errParam) { setError('Login cancelled.'); return false }
+    if (errParam) {
+      callbackInProgress = false
+      setError('Login cancelled.')
+      return false
+    }
 
     const savedState    = sessionStorage.getItem('pkce_state')
     const savedVerifier = sessionStorage.getItem('pkce_verifier')
 
     if (!code || state !== savedState) {
+      callbackInProgress = false
       setError('Security check failed. Please try again.')
       return false
     }
@@ -158,11 +175,14 @@ export function useCustomer() {
       sessionStorage.removeItem('pkce_verifier')
       sessionStorage.removeItem('pkce_state')
 
+      callbackCompleted  = true
+      callbackInProgress = false
       return true
 
     } catch (err) {
       console.error('Callback error:', err)
       setError('Sign in failed. Please try again.')
+      callbackInProgress = false
       return false
     } finally {
       setLoading(false)

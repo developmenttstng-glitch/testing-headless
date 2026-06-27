@@ -1,34 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export default function CallbackPage({ handleCallback, onNav }) {
   const [status, setStatus] = useState('processing')
+  // Guard — ensure handleCallback only runs ONCE
+  // Auth codes are single-use — running it twice causes "sign in failed"
+  const hasRun = useRef(false)
 
   useEffect(() => {
+    if (hasRun.current) return
+    hasRun.current = true
+
     handleCallback().then(success => {
       if (success) {
         setStatus('success')
-        setTimeout(() => {
-          // Navigate to account page — token and customer are now in localStorage
-          onNav('account')
-        }, 1000)
+        // Small delay so user sees the success message, then go to account
+        setTimeout(() => onNav('account'), 800)
       } else {
         setStatus('error')
-        setTimeout(() => onNav('home'), 3000)
+        setTimeout(() => onNav('home'), 2500)
       }
     })
-  }, [])
+  }, []) // empty deps — run once on mount only
 
   return (
     <>
       <style>{`
         .callback-page {
-          min-height: 100vh; display:flex; align-items:center; justify-content:center;
-          background: var(--bg); flex-direction:column; gap:16px; text-align:center;
+          min-height:100vh; display:flex; align-items:center; justify-content:center;
+          background:var(--bg); flex-direction:column; gap:16px; text-align:center;
         }
-        .cb-icon { font-size:48px; }
+        .cb-icon  { font-size:48px; }
         .cb-title { font-family:var(--mono); font-size:16px; color:var(--accent); letter-spacing:0.1em; }
-        .cb-sub { font-family:var(--mono); font-size:11px; color:var(--muted); }
-        .cb-spin {
+        .cb-sub   { font-family:var(--mono); font-size:11px; color:var(--muted); }
+        .cb-spin  {
           width:32px; height:32px; border:2px solid rgba(0,255,200,0.2);
           border-top-color:var(--accent); border-radius:50%;
           animation:spin 0.8s linear infinite;
@@ -48,7 +52,7 @@ export default function CallbackPage({ handleCallback, onNav }) {
           <>
             <div className="cb-icon">✓</div>
             <div className="cb-title">Signed in successfully</div>
-            <div className="cb-sub">Redirecting to your account...</div>
+            <div className="cb-sub">Loading your account...</div>
           </>
         )}
         {status === 'error' && (
