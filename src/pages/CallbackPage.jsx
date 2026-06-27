@@ -8,63 +8,39 @@ export default function CallbackPage({ handleCallback, onNav }) {
     if (ran.current) return
     ran.current = true
 
-    // Run the callback — it reads code/state from URL internally
     handleCallback().then(success => {
-      // NOW clear the URL so refresh doesn't re-trigger
-      window.history.replaceState({}, document.title, '/account/callback-done')
-
       if (success) {
         setStatus('success')
-        setTimeout(() => onNav('account'), 800)
+        // Clear the URL params so refresh doesn't re-trigger
+        window.history.replaceState({}, '', '/account/callback-done')
+        // Short delay then navigate to account
+        setTimeout(() => onNav('account'), 600)
       } else {
         setStatus('error')
-        setTimeout(() => onNav('home'), 2500)
+        window.history.replaceState({}, '', '/')
+        setTimeout(() => onNav('home'), 2000)
       }
     }).catch(() => {
       setStatus('error')
-      setTimeout(() => onNav('home'), 2500)
+      window.history.replaceState({}, '', '/')
+      setTimeout(() => onNav('home'), 2000)
     })
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
       <style>{`
-        .callback-page {
-          min-height:100vh; display:flex; align-items:center; justify-content:center;
-          background:var(--bg); flex-direction:column; gap:16px; text-align:center;
-        }
+        .cb-page { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); flex-direction:column; gap:16px; text-align:center; }
+        .cb-spin { width:32px; height:32px; border:2px solid rgba(0,255,200,0.2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
         .cb-icon  { font-size:48px; }
         .cb-title { font-family:var(--mono); font-size:16px; color:var(--accent); letter-spacing:0.1em; }
         .cb-sub   { font-family:var(--mono); font-size:11px; color:var(--muted); }
-        .cb-spin  {
-          width:32px; height:32px; border:2px solid rgba(0,255,200,0.2);
-          border-top-color:var(--accent); border-radius:50%;
-          animation:spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform:rotate(360deg) } }
+        @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
-      <div className="callback-page">
-        {status === 'processing' && (
-          <>
-            <div className="cb-spin"/>
-            <div className="cb-title">Signing you in...</div>
-            <div className="cb-sub">Please wait</div>
-          </>
-        )}
-        {status === 'success' && (
-          <>
-            <div className="cb-icon" style={{color:'var(--accent)'}}>✓</div>
-            <div className="cb-title">Signed in successfully</div>
-            <div className="cb-sub">Loading your account...</div>
-          </>
-        )}
-        {status === 'error' && (
-          <>
-            <div className="cb-icon" style={{color:'#ff003c'}}>✗</div>
-            <div className="cb-title" style={{color:'#ff003c'}}>Sign in failed</div>
-            <div className="cb-sub">Redirecting home...</div>
-          </>
-        )}
+      <div className="cb-page">
+        {status === 'processing' && (<><div className="cb-spin"/><div className="cb-title">Signing you in...</div><div className="cb-sub">Please wait</div></>)}
+        {status === 'success'    && (<><div className="cb-icon" style={{color:'var(--accent)'}}>✓</div><div className="cb-title">Signed in</div><div className="cb-sub">Loading your account...</div></>)}
+        {status === 'error'      && (<><div className="cb-icon" style={{color:'#ff003c'}}>✗</div><div className="cb-title" style={{color:'#ff003c'}}>Sign in failed</div><div className="cb-sub">Redirecting...</div></>)}
       </div>
     </>
   )
