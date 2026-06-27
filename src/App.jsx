@@ -71,10 +71,12 @@ export default function App() {
   function handleNav(p) { if (p === 'music') setMusicOn(true); navigate(p) }
 
   function handleViewDetail(product) {
-    console.log('[Modal] handleViewDetail called:', product.title)
-    console.trace()
-    addRecentlyViewed(product)
-    setDetailProd(product)
+    // Don't open if modal is already showing a product (prevents re-open on close click)
+    setDetailProd(current => {
+      if (current !== null) return current
+      addRecentlyViewed(product)
+      return product
+    })
   }
 
   const sharedProps = {
@@ -141,7 +143,7 @@ export default function App() {
           product={detailProd}
           onAddToCart={addToCart}
           cartLoading={cartLoading}
-          onClose={() => { console.log('[Modal] onClose called'); setDetailProd(null) }}
+          onClose={() => setDetailProd(null)}
           isWishlisted={isWishlisted}
           onToggleWishlist={toggleWishlist}
         />
