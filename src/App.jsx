@@ -23,7 +23,11 @@ import { useCustomer }   from './hooks/useCustomer'
 export default function App() {
   const [page,       setPage]       = useState(() => {
     // Detect OAuth callback from Shopify
-    if (window.location.pathname === '/account/callback') return 'callback'
+    const path   = window.location.pathname
+    const search = window.location.search
+    if (path === '/account/callback') return 'callback'
+    // Also detect if code param is present (some hosting strips the path)
+    if (search.includes('code=') && search.includes('state=')) return 'callback'
     return 'home'
   })
   const [cartOpen,   setCartOpen]   = useState(false)
