@@ -114,13 +114,13 @@ export default function ArcadePage() {
         .gs-name { font-family:var(--mono); font-size:8px; letter-spacing:0.08em; display:block; }
         .gs-best { font-size:8px; color:rgba(0,255,200,0.35); margin-top:2px; display:block; font-family:var(--mono); }
 
-        .play-area { display:grid; grid-template-columns:1fr 260px; min-height:60vh; }
+        .play-area { display:grid; grid-template-columns:1fr 240px; min-height:60vh; }
         .play-left {
           border-right:1px solid var(--border);
           display:flex; flex-direction:column;
-          align-items:center; justify-content:center;
+          align-items:center; justify-content:flex-start;
           padding:16px 12px; position:relative; gap:12px;
-          overflow-x:auto; min-width:0;
+          overflow:auto; min-width:0;
         }
         .play-right { padding:16px; overflow-y:auto; min-width:0; }
 
@@ -131,7 +131,7 @@ export default function ArcadePage() {
         .score-lbl { font-family:var(--mono); font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:2px; }
         .score-val { font-family:var(--mono); font-size:22px; color:var(--accent); font-weight:bold; }
 
-        .game-canvas-wrap { position:relative; }
+        .game-canvas-wrap { position:relative; display:inline-flex; flex-direction:column; align-items:center; }
         .go-overlay {
           position:absolute; inset:0; background:rgba(3,5,10,0.88);
           display:flex; flex-direction:column;
