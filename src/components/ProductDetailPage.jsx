@@ -128,7 +128,7 @@ export default function ProductDetailPage({ product, onAddToCart, cartLoading, o
         }
       `}</style>
 
-      <div className="pdp-overlay" onClick={onClose}>
+      <div className="pdp-overlay" onClick={e => { e.stopPropagation(); onClose() }}>
         <div className="pdp-modal" onClick={e => e.stopPropagation()}>
           <button className="pdp-close" onClick={e => { e.stopPropagation(); onClose() }}>×</button>
 
