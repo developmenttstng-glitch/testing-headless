@@ -30,6 +30,7 @@ const GAMES = [
   { id:'mines',    name:'MINESWEEPER',    icon:'💣', hint:'Left click reveal · Right click flag · first click is always safe', hasLevel:false },
   { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then destination · you are White · double-click to reset', hasLevel:false },
   { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N = note mode · arrow keys to navigate', hasLevel:false },
+  { id:'typing',   name:'TYPING',         icon:'⌨', hint:'Type the word · Space to confirm · 30 seconds · combo for bonus', hasLevel:false },
 ]
 
 export default function ArcadePage() {
@@ -85,6 +86,7 @@ export default function ArcadePage() {
       case 'mines':     return <Minesweeper {...props}/>
       case 'chess':     return <Chess       {...props}/>
       case 'sudoku':    return <Sudoku      {...props}/>
+      case 'typing':    return <TypingGame  {...props}/>
     }
   }
 
@@ -232,7 +234,7 @@ export default function ArcadePage() {
         <div className="arc-hero">
           <div className="arc-ey">// Entertainment module</div>
           <div className="arc-title">ARCADE</div>
-          <div className="arc-sub">Fourteen games. Infinite runs. Local leaderboard.</div>
+          <div className="arc-sub">Fifteen games. Infinite runs. Local leaderboard.</div>
         </div>
 
         {/* Game strip */}
