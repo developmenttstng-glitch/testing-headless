@@ -1,172 +1,173 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
-const COLS=10, ROWS=10, MINES=15
-const SQ=26, BW=COLS*SQ, BH=ROWS*SQ
+const COLS=10, ROWS=10, MINES=15, SQ=26
+const BW=COLS*SQ, BH=ROWS*SQ+40
 
-function makeBoard(firstR, firstC) {
-  const cells = Array.from({length:ROWS},(_,r)=>
-    Array.from({length:COLS},(_,c)=>({mine:false,revealed:false,flagged:false,count:0}))
+function makeBoard(fr, fc) {
+  const b = Array.from({length:ROWS},()=>
+    Array.from({length:COLS},()=>({mine:false,revealed:false,flagged:false,count:0}))
   )
-  // Place mines avoiding first click area
   let placed=0
-  while(placed<MINES){
+  while(placed<MINES) {
     const r=Math.floor(Math.random()*ROWS)
     const c=Math.floor(Math.random()*COLS)
-    if(!cells[r][c].mine&&!(Math.abs(r-firstR)<=1&&Math.abs(c-firstC)<=1)){
-      cells[r][c].mine=true; placed++
+    if(!b[r][c].mine && !(Math.abs(r-fr)<=1 && Math.abs(c-fc)<=1)) {
+      b[r][c].mine=true; placed++
     }
   }
-  // Count neighbors
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
-    if(cells[r][c].mine) continue
-    let cnt=0
-    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    if(b[r][c].mine) continue
+    let n=0
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
       const nr=r+dr,nc=c+dc
-      if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&cells[nr][nc].mine) cnt++
+      if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&b[nr][nc].mine) n++
     }
-    cells[r][c].count=cnt
+    b[r][c].count=n
   }
-  return cells
+  return b
 }
 
-function flood(cells, r, c){
+function flood(b, r, c) {
   if(r<0||r>=ROWS||c<0||c>=COLS) return
-  if(cells[r][c].revealed||cells[r][c].flagged||cells[r][c].mine) return
-  cells[r][c].revealed=true
-  if(cells[r][c].count===0)
-    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) flood(cells,r+dr,c+dc)
+  if(b[r][c].revealed||b[r][c].flagged||b[r][c].mine) return
+  b[r][c].revealed=true
+  if(b[r][c].count===0)
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) flood(b,r+dr,c+dc)
 }
 
-const NUM_COLORS=['','#00ffc8','#00c8ff','#ff003c','#bf00ff','#ff6600','#ffcc00','#00ff66','#ffffff']
+const NCOLORS=['','#00ffc8','#00c8ff','#ff003c','#bf00ff','#ff6600','#ffcc00','#00ff66','#fff']
 
 export default function Minesweeper({ onScore, onGameOver, onWin }) {
-  const canvasRef = useRef(null)
-  const stateRef  = useRef({
-    cells: null, started:false, dead:false, won:false,
-    flags:0, revealed:0, score:0
-  })
-  const [,rerender] = useState(0)
+  const ref = useRef(null)
 
-  function draw(){
-    const canvas=canvasRef.current; if(!canvas) return
-    const ctx=canvas.getContext('2d')
-    const s=stateRef.current
+  useEffect(() => {
+    const ctx = ref.current.getContext('2d')
+    let board    = null
+    let flags    = 0
+    let revealed = 0
+    let dead     = false
+    let won      = false
+    let score    = 0
 
-    ctx.fillStyle='#03050a'; ctx.fillRect(0,0,BW,BH+36)
+    function draw() {
+      ctx.fillStyle='#03050a'
+      ctx.fillRect(0,0,BW,BH)
 
-    // Header
-    ctx.fillStyle='rgba(0,255,200,0.5)'; ctx.font='11px monospace'; ctx.textAlign='left'
-    ctx.fillText(`💣 ${MINES-s.flags}`,8,22)
-    ctx.textAlign='right'
-    ctx.fillText(s.dead?'💥 Game Over':s.won?'🎉 You Win!':'Click to reveal',BW-8,22)
+      // Header
+      ctx.fillStyle='rgba(0,255,200,0.5)'
+      ctx.font='11px monospace'
+      ctx.textAlign='left'
+      ctx.fillText(`💣 ${MINES-flags}`, 8, 24)
+      ctx.textAlign='right'
+      ctx.fillText(dead?'💥 Click to restart':won?'✓ Click to restart':'Right-click = flag', BW-8, 24)
 
-    if(!s.cells){
-      // Empty grid before first click
-      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-        ctx.fillStyle='#0d1825'
-        ctx.strokeStyle='rgba(0,255,200,0.15)'; ctx.lineWidth=0.5
-        ctx.fillRect(c*SQ,r*SQ+36,SQ,SQ)
-        ctx.strokeRect(c*SQ,r*SQ+36,SQ,SQ)
+      if(!board) {
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+          ctx.fillStyle='#0d1825'
+          ctx.strokeStyle='rgba(0,255,200,0.12)'
+          ctx.lineWidth=0.5
+          ctx.fillRect(c*SQ,r*SQ+40,SQ,SQ)
+          ctx.strokeRect(c*SQ,r*SQ+40,SQ,SQ)
+        }
+        ctx.fillStyle='rgba(0,255,200,0.4)'
+        ctx.font='11px monospace'
+        ctx.textAlign='center'
+        ctx.fillText('Click to start', BW/2, BH/2+20)
+        return
       }
-      ctx.fillStyle='rgba(0,255,200,0.4)'; ctx.font='11px monospace'; ctx.textAlign='center'
-      ctx.fillText('Click anywhere to start',BW/2,BH/2+36)
-      return
+
+      for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+        const cell=board[r][c]
+        const x=c*SQ, y=r*SQ+40
+
+        if(cell.revealed) {
+          ctx.fillStyle = cell.mine ? '#1a0010' : '#0a1520'
+          ctx.fillRect(x,y,SQ,SQ)
+          ctx.strokeStyle='rgba(0,255,200,0.05)'
+          ctx.lineWidth=0.5
+          ctx.strokeRect(x,y,SQ,SQ)
+          if(cell.mine) {
+            ctx.font='14px monospace'
+            ctx.textAlign='center'
+            ctx.fillText('💣',x+SQ/2,y+SQ/2+5)
+          } else if(cell.count>0) {
+            ctx.fillStyle=NCOLORS[cell.count]
+            ctx.font='bold 12px monospace'
+            ctx.textAlign='center'
+            ctx.fillText(cell.count,x+SQ/2,y+SQ/2+4)
+          }
+        } else {
+          ctx.fillStyle=cell.flagged?'#1a1200':'#0d1825'
+          ctx.strokeStyle='rgba(0,255,200,0.2)'
+          ctx.lineWidth=0.5
+          ctx.fillRect(x,y,SQ,SQ)
+          ctx.strokeRect(x,y,SQ,SQ)
+          if(cell.flagged) {
+            ctx.font='12px monospace'
+            ctx.textAlign='center'
+            ctx.fillText('🚩',x+SQ/2,y+SQ/2+4)
+          }
+        }
+      }
     }
 
-    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-      const cell=s.cells[r][c]
-      const x=c*SQ, y=r*SQ+36
+    function reset() {
+      board=null; flags=0; revealed=0; dead=false; won=false; score=0
+      draw()
+    }
 
-      if(cell.revealed){
-        ctx.fillStyle=cell.mine?'#1a0010':'#0a1520'
-        ctx.fillRect(x,y,SQ,SQ)
-        ctx.strokeStyle='rgba(0,255,200,0.06)'; ctx.lineWidth=0.5; ctx.strokeRect(x,y,SQ,SQ)
-        if(cell.mine){
-          ctx.fillStyle='#ff003c'; ctx.font='14px monospace'; ctx.textAlign='center'
-          ctx.fillText('💣',x+SQ/2,y+SQ/2+5)
-        } else if(cell.count>0){
-          ctx.fillStyle=NUM_COLORS[cell.count]; ctx.font='bold 13px monospace'; ctx.textAlign='center'
-          ctx.fillText(cell.count,x+SQ/2,y+SQ/2+5)
-        }
+    function onClick(e) {
+      const rect=ref.current.getBoundingClientRect()
+      const mx=e.clientX-rect.left
+      const my=e.clientY-rect.top-40
+      const c=Math.floor(mx/SQ), r=Math.floor(my/SQ)
+
+      if(dead||won) { reset(); return }
+      if(r<0||r>=ROWS||c<0||c>=COLS) return
+      if(!board) { board=makeBoard(r,c) }
+
+      const cell=board[r][c]
+      if(cell.revealed||cell.flagged) return
+
+      if(cell.mine) {
+        board.forEach(row=>row.forEach(cl=>{ if(cl.mine) cl.revealed=true }))
+        cell.revealed=true; dead=true
+        onGameOver(score)
       } else {
-        ctx.fillStyle=cell.flagged?'#1a1000':'#0d1825'
-        ctx.strokeStyle='rgba(0,255,200,0.2)'; ctx.lineWidth=0.5
-        ctx.fillRect(x,y,SQ,SQ); ctx.strokeRect(x,y,SQ,SQ)
-        if(cell.flagged){
-          ctx.fillStyle='#ffcc00'; ctx.font='12px monospace'; ctx.textAlign='center'
-          ctx.fillText('🚩',x+SQ/2,y+SQ/2+5)
-        }
+        flood(board,r,c)
+        revealed=board.flat().filter(cl=>cl.revealed&&!cl.mine).length
+        score=revealed*10
+        onScore(score)
+        if(revealed===ROWS*COLS-MINES) { won=true; onWin(score) }
       }
-    }
-  }
-
-  useEffect(()=>{ draw() })
-
-  function handleClick(e){
-    const s=stateRef.current
-    if(s.dead||s.won) return
-    const rect=canvasRef.current.getBoundingClientRect()
-    const mx=e.clientX-rect.left
-    const my=e.clientY-rect.top-36
-    const c=Math.floor(mx/SQ), r=Math.floor(my/SQ)
-    if(r<0||r>=ROWS||c<0||c>=COLS) return
-
-    if(!s.cells){
-      s.cells=makeBoard(r,c)
-      s.started=true
+      draw()
     }
 
-    const cell=s.cells[r][c]
-    if(cell.revealed||cell.flagged) return
-
-    if(cell.mine){
-      // Reveal all mines
-      s.cells.forEach(row=>row.forEach(cl=>{ if(cl.mine) cl.revealed=true }))
-      cell.revealed=true; s.dead=true
-      onGameOver(s.score)
-    } else {
-      flood(s.cells,r,c)
-      s.revealed=s.cells.flat().filter(cl=>cl.revealed&&!cl.mine).length
-      s.score=s.revealed*10
-      onScore(s.score)
-      if(s.revealed===ROWS*COLS-MINES){ s.won=true; onWin(s.score) }
+    function onRightClick(e) {
+      e.preventDefault()
+      if(!board||dead||won) return
+      const rect=ref.current.getBoundingClientRect()
+      const c=Math.floor((e.clientX-rect.left)/SQ)
+      const r=Math.floor((e.clientY-rect.top-40)/SQ)
+      if(r<0||r>=ROWS||c<0||c>=COLS) return
+      const cell=board[r][c]
+      if(cell.revealed) return
+      cell.flagged=!cell.flagged
+      flags=board.flat().filter(cl=>cl.flagged).length
+      draw()
     }
-    draw(); rerender(n=>n+1)
-  }
 
-  function handleRightClick(e){
-    e.preventDefault()
-    const s=stateRef.current
-    if(!s.cells||s.dead||s.won) return
-    const rect=canvasRef.current.getBoundingClientRect()
-    const c=Math.floor((e.clientX-rect.left)/SQ)
-    const r=Math.floor((e.clientY-rect.top-36)/SQ)
-    if(r<0||r>=ROWS||c<0||c>=COLS) return
-    const cell=s.cells[r][c]
-    if(cell.revealed) return
-    cell.flagged=!cell.flagged
-    s.flags=s.cells.flat().filter(cl=>cl.flagged).length
-    draw(); rerender(n=>n+1)
-  }
-
-  function reset(){
-    stateRef.current={cells:null,started:false,dead:false,won:false,flags:0,revealed:0,score:0}
-    rerender(n=>n+1)
-  }
+    draw()
+    ref.current.addEventListener('click', onClick)
+    ref.current.addEventListener('contextmenu', onRightClick)
+    return () => {
+      ref.current?.removeEventListener('click', onClick)
+      ref.current?.removeEventListener('contextmenu', onRightClick)
+    }
+  }, [])
 
   return (
-    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'8px'}}>
-      <canvas ref={canvasRef} width={BW} height={BH+36}
-        style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'4px',cursor:'pointer'}}
-        onClick={handleClick} onContextMenu={handleRightClick}/>
-      <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--muted)',textAlign:'center'}}>
-        Left click = reveal · Right click = flag
-      </div>
-      <button onClick={reset} style={{fontFamily:'var(--mono)',fontSize:'10px',letterSpacing:'0.12em',
-        textTransform:'uppercase',padding:'6px 16px',border:'1px solid var(--accent)',
-        background:'transparent',color:'var(--accent)',cursor:'pointer'}}>
-        New game
-      </button>
-    </div>
+    <canvas ref={ref} width={BW} height={BH}
+      style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'4px',cursor:'pointer'}}/>
   )
 }
