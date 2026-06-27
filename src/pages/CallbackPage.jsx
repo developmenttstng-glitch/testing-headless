@@ -2,25 +2,39 @@ import { useEffect, useState, useRef } from 'react'
 
 export default function CallbackPage({ handleCallback, onNav }) {
   const [status, setStatus] = useState('processing')
-  // Guard — ensure handleCallback only runs ONCE
-  // Auth codes are single-use — running it twice causes "sign in failed"
-  const hasRun = useRef(false)
+  const ran = useRef(false)
 
   useEffect(() => {
-    if (hasRun.current) return
-    hasRun.current = true
+    // Strict double-run guard
+    if (ran.current) return
+    ran.current = true
+
+    // Clear the URL immediately so refreshing doesn't re-trigger
+    const code  = new URLSearchParams(window.location.search).get('code')
+    const state = new URLSearchParams(window.location.search).get('state')
+
+    if (!code || !state) {
+      setStatus('error')
+      setTimeout(() => onNav('home'), 2000)
+      return
+    }
+
+    // Replace URL to prevent re-runs on refresh
+    window.history.replaceState({}, document.title, '/account/callback')
 
     handleCallback().then(success => {
       if (success) {
         setStatus('success')
-        // Small delay so user sees the success message, then go to account
-        setTimeout(() => onNav('account'), 800)
+        setTimeout(() => onNav('account'), 600)
       } else {
         setStatus('error')
         setTimeout(() => onNav('home'), 2500)
       }
+    }).catch(() => {
+      setStatus('error')
+      setTimeout(() => onNav('home'), 2500)
     })
-  }, []) // empty deps — run once on mount only
+  }, [])
 
   return (
     <>
@@ -39,7 +53,6 @@ export default function CallbackPage({ handleCallback, onNav }) {
         }
         @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
-
       <div className="callback-page">
         {status === 'processing' && (
           <>
@@ -50,14 +63,14 @@ export default function CallbackPage({ handleCallback, onNav }) {
         )}
         {status === 'success' && (
           <>
-            <div className="cb-icon">✓</div>
+            <div className="cb-icon" style={{color:'var(--accent)'}}>✓</div>
             <div className="cb-title">Signed in successfully</div>
             <div className="cb-sub">Loading your account...</div>
           </>
         )}
         {status === 'error' && (
           <>
-            <div className="cb-icon">✗</div>
+            <div className="cb-icon" style={{color:'#ff003c'}}>✗</div>
             <div className="cb-title" style={{color:'#ff003c'}}>Sign in failed</div>
             <div className="cb-sub">Redirecting home...</div>
           </>

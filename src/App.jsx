@@ -1,3 +1,4 @@
+// v12 — auth callback fix
 import { useState, useEffect } from 'react'
 import Navbar            from './components/Navbar'
 import Footer            from './components/Footer'
@@ -54,7 +55,7 @@ export default function App() {
   }
   const { items: wishlist, toggle: toggleWishlist, isWishlisted, count: wishCount } = useWishlist()
   const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
-  const { customer, isLoggedIn, loading: authLoading, error: authError,
+  const { customer, token, isLoggedIn, loading: authLoading, error: authError,
           login, logout, handleCallback, fetchOrders } = useCustomer()
 
   useEffect(() => {
@@ -92,9 +93,17 @@ export default function App() {
       case 'about':    return <AboutPage    onNav={handleNav}/>
       case 'wishlist': return <WishlistPage items={wishlist} onNav={handleNav} {...sharedProps}/>
       case 'alarm':    return <AlarmPage/>
-      case 'account':  return isLoggedIn
-        ? <AccountPage customer={customer} onLogout={logout} fetchOrders={fetchOrders} onNav={handleNav}/>
-        : <LoginPromptPage onLogin={login} authError={authError}/>
+      case 'account':  {
+        // Read customer directly from localStorage as fallback
+        // in case React state hasn't updated yet after callback
+        const storedCustomer = customer || (() => {
+          try { return JSON.parse(localStorage.getItem('neon_customer')) } catch { return null }
+        })()
+        const storedToken = token || localStorage.getItem('neon_customer_token')
+        return storedCustomer && storedToken
+          ? <AccountPage customer={storedCustomer} onLogout={logout} fetchOrders={fetchOrders} onNav={handleNav}/>
+          : <LoginPromptPage onLogin={login} authError={authError}/>
+      }
       case 'callback': return <CallbackPage handleCallback={handleCallback} onNav={handleNav} isLoggedIn={isLoggedIn}/>
       default:         return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
     }
