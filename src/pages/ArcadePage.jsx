@@ -8,6 +8,8 @@ import Breakout    from '../components/games/Breakout'
 import Runner      from '../components/games/Runner'
 import Pong        from '../components/games/Pong'
 import Game2048    from '../components/games/Game2048'
+import Chess       from '../components/games/Chess'
+import Sudoku      from '../components/games/Sudoku'
 
 const GAMES = [
   { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
@@ -18,6 +20,8 @@ const GAMES = [
   { id:'runner',   name:'RUNNER',         icon:'▶', hint:'Space / click to jump', hasLevel:false },
   { id:'pong',     name:'PONG',           icon:'◐', hint:'W/S or ↑/↓ to move · Space to start', hasLevel:false },
   { id:'2048',     name:'2048',           icon:'◧', hint:'Arrow keys or swipe to slide tiles', hasLevel:false },
+  { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then click destination · You are White · AI plays Black', hasLevel:false },
+  { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N for note mode · Backspace to delete', hasLevel:false },
 ]
 
 export default function ArcadePage() {
@@ -86,7 +90,7 @@ export default function ArcadePage() {
         .arc-sub { font-size:13px; color:var(--muted); }
 
         .game-strip {
-          display:grid; grid-template-columns:repeat(8,1fr);
+          display:grid; grid-template-columns:repeat(5,1fr);
           border-bottom:1px solid var(--border);
         }
         .game-strip-btn {
@@ -178,7 +182,7 @@ export default function ArcadePage() {
         .no-game-text { font-family:var(--mono); font-size:11px; letter-spacing:0.15em; }
 
         .hall { border-top:1px solid var(--border); padding:36px 0; }
-        .hall-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1px solid var(--border); }
+        .hall-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:1px solid var(--border); }
         .hall-col { padding:16px; border-right:1px solid var(--border); }
         .hall-col:last-child { border-right:none; }
         .hall-col-title { font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
@@ -197,14 +201,14 @@ export default function ArcadePage() {
         .touch-btn:active { background:rgba(0,255,200,0.15); }
 
         @media (max-width:960px) {
-          .game-strip { grid-template-columns:repeat(4,1fr); }
+          .game-strip { grid-template-columns:repeat(5,1fr); }
           .play-area  { grid-template-columns:1fr; }
           .play-left  { border-right:none; border-bottom:1px solid var(--border); padding:16px; }
           .hall-grid  { grid-template-columns:repeat(2,1fr); }
           .touch-controls { display:flex; }
         }
         @media (max-width:600px) {
-          .game-strip { grid-template-columns:repeat(4,1fr); }
+          .game-strip { grid-template-columns:repeat(5,1fr); }
           .hall-grid  { grid-template-columns:1fr; }
         }
       `}</style>
