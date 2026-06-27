@@ -10,6 +10,11 @@ import Pong        from '../components/games/Pong'
 import Game2048    from '../components/games/Game2048'
 import Whack       from '../components/games/Whack'
 import ColorMatch  from '../components/games/ColorMatch'
+import MemoryMatch from '../components/games/MemoryMatch'
+import Minesweeper from '../components/games/Minesweeper'
+import Chess       from '../components/games/Chess'
+import Sudoku      from '../components/games/Sudoku'
+import ColorMatch  from '../components/games/ColorMatch'
 
 const GAMES = [
   { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
@@ -22,6 +27,10 @@ const GAMES = [
   { id:'2048',     name:'2048',           icon:'◧', hint:'Arrow keys or swipe to slide tiles', hasLevel:false },
   { id:'whack',    name:'WHACK-A-MOLE',   icon:'🔨', hint:'Click the moles before they hide · 30 seconds · combo for bonus', hasLevel:false },
   { id:'color',    name:'COLOR MATCH',    icon:'◉', hint:'Tap the tile matching the WORD COLOR not the text · 3 lives', hasLevel:false },
+  { id:'memory',   name:'MEMORY',         icon:'◈', hint:'Flip cards · match all pairs · fewer moves = higher score', hasLevel:false },
+  { id:'mines',    name:'MINESWEEPER',    icon:'💣', hint:'Left click reveal · Right click flag · first click is always safe', hasLevel:false },
+  { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then destination · you are White · double-click to reset', hasLevel:false },
+  { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N = note mode · arrow keys to navigate', hasLevel:false },
 ]
 
 export default function ArcadePage() {
@@ -72,7 +81,11 @@ export default function ArcadePage() {
       case 'pong':     return <Pong      {...props}/>
       case '2048':     return <Game2048  {...props}/>
       case 'whack':     return <Whack      {...props}/>
-      case 'color':     return <ColorMatch {...props}/>
+      case 'color':     return <ColorMatch  {...props}/>
+      case 'memory':    return <MemoryMatch {...props}/>
+      case 'mines':     return <Minesweeper {...props}/>
+      case 'chess':     return <Chess       {...props}/>
+      case 'sudoku':    return <Sudoku      {...props}/>
     }
   }
 
@@ -220,7 +233,7 @@ export default function ArcadePage() {
         <div className="arc-hero">
           <div className="arc-ey">// Entertainment module</div>
           <div className="arc-title">ARCADE</div>
-          <div className="arc-sub">Eight games. Infinite runs. Global leaderboard.</div>
+          <div className="arc-sub">Fourteen games. Infinite runs. Local leaderboard.</div>
         </div>
 
         {/* Game strip */}
