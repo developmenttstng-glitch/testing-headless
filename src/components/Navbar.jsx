@@ -11,7 +11,7 @@ const links = [
   { label: 'Alarm',    page: 'alarm' },
 ]
 
-export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen, customer, onLogin, onAccount }) {
+export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen, onLogin, onAccount }) {
   const [scrolled,  setScrolled]  = useState(false)
   const [menuOpen,  setMenuOpen]  = useState(false)
 
@@ -142,16 +142,9 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen,
           ))}
         </ul>
         <div className="nav-right">
-          {customer ? (
-            <button className="account-btn logged-in" onClick={onAccount}
-              title={customer.email}>
-              ◈ {customer.firstName || customer.name?.split(' ')[0] || customer.email?.split('@')[0] || 'Account'}
-            </button>
-          ) : (
-            <button className="account-btn" onClick={onLogin}>
-              Sign in
-            </button>
-          )}
+          <button className="account-btn" onClick={onLogin}>
+            Account
+          </button>
           <button className="cart-btn" onClick={onCartOpen}>
             Cart{totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
           </button>
