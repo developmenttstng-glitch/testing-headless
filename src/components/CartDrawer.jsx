@@ -1,4 +1,4 @@
-export default function CartDrawer({ lines, totalPrice, currency, onClose, onCheckout, cartLoading, onLogin }) {
+export default function CartDrawer({ lines, totalPrice, currency, onClose, onCheckout, cartLoading, customer, onLogin }) {
   return (
     <>
       <style>{`
