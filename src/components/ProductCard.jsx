@@ -1,3 +1,4 @@
+import { formatPrice } from '../lib/currency'
 import { useState } from 'react'
 
 export default function ProductCard({ product, onAddToCart, cartLoading, onViewDetail, isWishlisted, onToggleWishlist }) {
@@ -117,7 +118,7 @@ export default function ProductCard({ product, onAddToCart, cartLoading, onViewD
 
         <div className="product-body" onClick={e => e.stopPropagation()}>
           <div className="product-name">{product.title}</div>
-          <div className="product-price">{currency} ${price}</div>
+          <div className="product-price">{formatPrice(price, currency)}</div>
 
           {variants.length > 1 && (
             <div className="variants">

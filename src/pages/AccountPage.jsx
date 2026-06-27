@@ -1,3 +1,4 @@
+import { formatPrice } from '../lib/currency'
 import { useState, useEffect } from 'react'
 
 export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) {
@@ -21,7 +22,7 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
 
   function money(obj) {
     if (!obj) return '—'
-    return `${obj.currencyCode} ${parseFloat(obj.amount).toFixed(2)}`
+    return formatPrice(obj.amount, obj.currencyCode)
   }
 
   function statusColor(status) {

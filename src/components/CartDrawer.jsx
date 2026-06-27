@@ -1,3 +1,4 @@
+import { formatPrice } from '../lib/currency'
 export default function CartDrawer({ lines, totalPrice, currency, onClose, onCheckout, cartLoading, customer, onLogin }) {
   return (
     <>
@@ -87,7 +88,7 @@ export default function CartDrawer({ lines, totalPrice, currency, onClose, onChe
                   <div className="cart-item-name">{line.merchandise.product.title}</div>
                   <div className="cart-item-variant">{line.merchandise.title} × {line.quantity}</div>
                   <div className="cart-item-price">
-                    {line.merchandise.price.currencyCode} ${parseFloat(line.merchandise.price.amount).toFixed(2)}
+                    {formatPrice(line.merchandise.price.amount, line.merchandise.price.currencyCode)}
                   </div>
                 </div>
               </div>
@@ -99,7 +100,7 @@ export default function CartDrawer({ lines, totalPrice, currency, onClose, onChe
 
           <div className="cart-total">
             <span className="cart-total-label">Total</span>
-            <span className="cart-total-val">{currency} ${totalPrice}</span>
+            <span className="cart-total-val">{formatPrice(totalPrice, currency)}</span>
           </div>
           <button className="checkout-btn" onClick={onCheckout} disabled={lines.length === 0 || cartLoading}>
             {cartLoading ? 'Processing...' : 'Proceed to checkout →'}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { shopifyClient } from '../lib/shopify'
+import { shopifyClient, COUNTRY_CODE } from '../lib/shopify'
 import { CREATE_CART, ADD_CART_LINES } from '../lib/queries'
 
 export function useCart() {
@@ -14,7 +14,7 @@ export function useCart() {
     ? parseFloat(cart.cost.totalAmount.amount).toFixed(2)
     : '0.00'
 
-  const currency = cart?.cost?.totalAmount?.currencyCode || 'USD'
+  const currency = cart?.cost?.totalAmount?.currencyCode || 'PHP'
 
   const lines = cart
     ? cart.lines.edges.map(e => e.node)
@@ -25,12 +25,19 @@ export function useCart() {
     try {
       if (!cart) {
         const { data } = await shopifyClient.request(CREATE_CART, {
-          variables: { lines: [{ merchandiseId: variantId, quantity }] },
+          variables: {
+            lines:   [{ merchandiseId: variantId, quantity }],
+            country: COUNTRY_CODE,
+          },
         })
         setCart(data.cartCreate.cart)
       } else {
         const { data } = await shopifyClient.request(ADD_CART_LINES, {
-          variables: { cartId: cart.id, lines: [{ merchandiseId: variantId, quantity }] },
+          variables: {
+            cartId:  cart.id,
+            lines:   [{ merchandiseId: variantId, quantity }],
+            country: COUNTRY_CODE,
+          },
         })
         setCart(data.cartLinesAdd.cart)
       }

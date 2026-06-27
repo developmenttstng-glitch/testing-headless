@@ -1,3 +1,4 @@
+import { formatPrice } from '../lib/currency'
 import { useState } from 'react'
 
 export default function ProductDetailPage({ product, onAddToCart, cartLoading, onClose, isWishlisted, onToggleWishlist }) {
@@ -159,7 +160,7 @@ export default function ProductDetailPage({ product, onAddToCart, cartLoading, o
               <div className="pdp-title">{product.title}</div>
             </div>
 
-            <div className="pdp-price">{currency} ${price}</div>
+            <div className="pdp-price">{formatPrice(price, currency)}</div>
 
             {product.description && (
               <div className="pdp-desc">{product.description}</div>

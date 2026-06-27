@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { shopifyClient } from '../lib/shopify'
+import { shopifyClient, COUNTRY_CODE } from '../lib/shopify'
 import { GET_PRODUCTS } from '../lib/queries'
 
 export function useProducts(count = 8) {
@@ -9,7 +9,7 @@ export function useProducts(count = 8) {
 
   useEffect(() => {
     shopifyClient
-      .request(GET_PRODUCTS, { variables: { first: count } })
+      .request(GET_PRODUCTS, { variables: { first: count, country: COUNTRY_CODE } })
       .then(({ data, errors }) => {
         if (errors) throw new Error(errors.message)
         setProducts(data.products.edges.map(e => e.node))

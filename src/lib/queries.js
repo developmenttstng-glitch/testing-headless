@@ -1,5 +1,8 @@
+// All queries use @inContext(country: $country) to return correct local currency
+// Pass country: "PH" in variables to get PHP prices
+
 export const GET_PRODUCTS = `
-  query GetProducts($first: Int!) {
+  query GetProducts($first: Int!, $country: CountryCode!) @inContext(country: $country) {
     products(first: $first) {
       edges {
         node {
@@ -16,7 +19,7 @@ export const GET_PRODUCTS = `
             }
           }
           featuredImage { url altText }
-          images(first: 3) {
+          images(first: 5) {
             edges { node { url altText } }
           }
           tags
@@ -27,7 +30,8 @@ export const GET_PRODUCTS = `
 `
 
 export const CREATE_CART = `
-  mutation CartCreate($lines: [CartLineInput!]) {
+  mutation CartCreate($lines: [CartLineInput!], $country: CountryCode!)
+    @inContext(country: $country) {
     cartCreate(input: { lines: $lines }) {
       cart {
         id checkoutUrl
@@ -52,7 +56,8 @@ export const CREATE_CART = `
 `
 
 export const ADD_CART_LINES = `
-  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+  mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!, $country: CountryCode!)
+    @inContext(country: $country) {
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart {
         id checkoutUrl
@@ -72,6 +77,29 @@ export const ADD_CART_LINES = `
         }
         cost { totalAmount { amount currencyCode } }
       }
+    }
+  }
+`
+
+export const GET_CART = `
+  query GetCart($cartId: ID!, $country: CountryCode!) @inContext(country: $country) {
+    cart(id: $cartId) {
+      id checkoutUrl
+      lines(first: 10) {
+        edges {
+          node {
+            id quantity
+            merchandise {
+              ... on ProductVariant {
+                id title
+                product { title }
+                price { amount currencyCode }
+              }
+            }
+          }
+        }
+      }
+      cost { totalAmount { amount currencyCode } }
     }
   }
 `
