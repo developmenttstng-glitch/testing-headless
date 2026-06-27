@@ -30,7 +30,7 @@ const GAMES = [
   { id:'mines',    name:'MINESWEEPER',    icon:'💣', hint:'Left click reveal · Right click flag · first click is always safe', hasLevel:false },
   { id:'chess',    name:'CHESS',          icon:'♟', hint:'Click piece then destination · you are White · double-click to reset', hasLevel:false },
   { id:'sudoku',   name:'SUDOKU',         icon:'◉', hint:'Click cell then type 1-9 · N = note mode · arrow keys to navigate', hasLevel:false },
-  { id:'typing',   name:'TYPING',         icon:'⌨', hint:'Type the word · Space to confirm · 30 seconds · combo for bonus', hasLevel:false },
+  { id:'typing',   name:'TYPING',         icon:'Aa', hint:'Type the word · Space to confirm · 30 seconds · combo for bonus', hasLevel:false },
 ]
 
 export default function ArcadePage() {

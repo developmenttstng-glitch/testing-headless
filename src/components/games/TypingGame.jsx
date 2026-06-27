@@ -210,13 +210,18 @@ export default function TypingGame({ onScore, onGameOver }) {
     const blinkTimer=setInterval(()=>{if(started&&alive)draw()},400)
 
     draw()
-    window.addEventListener('keydown', onKey)
+    ref.current.addEventListener('keydown', onKey)
+    ref.current.focus()
     return()=>{
       clearInterval(timerId); clearInterval(flashTimer); clearInterval(blinkTimer)
-      window.removeEventListener('keydown', onKey)
+      ref.current?.removeEventListener('keydown', onKey)
     }
   },[])
 
   return <canvas ref={ref} width={280} height={320}
-    style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px',cursor:'text'}}/>
+    tabIndex={0}
+    style={{display:'block',border:'1px solid rgba(0,255,200,0.15)',borderRadius:'2px',cursor:'text',outline:'none'}}
+    onClick={()=>ref.current?.focus()}
+    onFocus={()=>ref.current?.focus()}
+  />
 }
