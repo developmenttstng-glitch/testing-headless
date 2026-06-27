@@ -203,23 +203,32 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                     <div className="order-card" key={order.id}>
                       <div className="order-header">
                         <div>
-                          <div className="order-num">#{order.orderNumber}</div>
+                          <div className="order-num">{order.name}</div>
                           <div className="order-date">{fmt(order.processedAt)}</div>
                         </div>
                         <div className={`order-status ${order.financialStatus?.toLowerCase()}`}>
                           {order.financialStatus}
                         </div>
                         <div className="order-total">
-                          {order.totalPrice?.currencyCode} ${parseFloat(order.totalPrice?.amount).toFixed(2)}
+                          {order.totalPrice?.currencyCode} {parseFloat(order.totalPrice?.amount).toFixed(2)}
                         </div>
                       </div>
                       <div className="order-items">
-                        {(order.lineItems?.nodes || order.lineItems?.edges?.map(e=>e.node) || []).map(item => (
-                          <div className="order-item-row" key={item.title}>
+                        {(order.lineItems?.nodes || []).map((item, i) => (
+                          <div className="order-item-row" key={i}>
                             {item.title} × {item.quantity}
                           </div>
                         ))}
                       </div>
+                      {order.statusPageUrl && (
+                        <div style={{padding:'8px 16px',borderTop:'1px solid var(--border)'}}>
+                          <a href={order.statusPageUrl} target="_blank" rel="noreferrer"
+                            style={{fontFamily:'var(--mono)',fontSize:'9px',letterSpacing:'0.1em',
+                              textTransform:'uppercase',color:'var(--accent)',textDecoration:'none'}}>
+                            View order status →
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

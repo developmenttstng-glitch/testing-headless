@@ -254,11 +254,19 @@ export function useCustomer() {
             customer {
               orders(first: 10) {
                 nodes {
-                  id orderNumber name processedAt
-                  financialStatus fulfillmentStatus
+                  id
+                  name
+                  number
+                  processedAt
+                  financialStatus
+                  fulfillmentStatus
                   totalPrice { amount currencyCode }
-                  lineItems(first: 3) {
-                    nodes { title quantity }
+                  statusPageUrl
+                  lineItems(first: 5) {
+                    nodes {
+                      title
+                      quantity
+                    }
                   }
                 }
               }
