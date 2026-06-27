@@ -22,12 +22,15 @@ import { useCustomer }   from './hooks/useCustomer'
 
 export default function App() {
   const [page,       setPage]       = useState(() => {
-    // Detect OAuth callback from Shopify
     const path   = window.location.pathname
     const search = window.location.search
+    // Detect OAuth callback
     if (path === '/account/callback') return 'callback'
-    // Also detect if code param is present (some hosting strips the path)
     if (search.includes('code=') && search.includes('state=')) return 'callback'
+    // If token exists in localStorage, go to account page
+    if (localStorage.getItem('neon_customer_token') && localStorage.getItem('neon_customer')) {
+      return 'account'
+    }
     return 'home'
   })
   const [cartOpen,   setCartOpen]   = useState(false)

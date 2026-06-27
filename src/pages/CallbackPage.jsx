@@ -7,7 +7,11 @@ export default function CallbackPage({ handleCallback, onNav }) {
     handleCallback().then(success => {
       if (success) {
         setStatus('success')
-        setTimeout(() => onNav('account'), 1200)
+        // Use window.location to force a clean reload with the token now in localStorage
+        setTimeout(() => {
+          window.location.href = window.location.origin
+          // After reload, App will see the token in localStorage and show account page
+        }, 1200)
       } else {
         setStatus('error')
         setTimeout(() => onNav('home'), 3000)
