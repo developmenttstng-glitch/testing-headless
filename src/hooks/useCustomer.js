@@ -109,6 +109,13 @@ export function useCustomer() {
     if (callbackRan.current) return !!localStorage.getItem(TOKEN_KEY)
     callbackRan.current = true
 
+    // If already logged in (token in localStorage), skip the callback entirely
+    // This handles the back-button case where the callback URL is re-visited
+    if (localStorage.getItem(TOKEN_KEY) && localStorage.getItem(STORAGE_KEY)) {
+      console.log('[Auth] Already logged in — skipping callback')
+      return true
+    }
+
     const params    = new URLSearchParams(window.location.search)
     const code      = params.get('code')
     const state     = params.get('state')
@@ -261,7 +268,6 @@ export function useCustomer() {
                   financialStatus
                   fulfillmentStatus
                   totalPrice    { amount currencyCode }
-                  subtotal      { amount currencyCode }
                   totalShipping { amount currencyCode }
                   totalTax      { amount currencyCode }
                   shippingAddress {
@@ -275,18 +281,6 @@ export function useCustomer() {
                       title
                       quantity
                       variantTitle
-                      originalTotalPrice { amount currencyCode }
-                    }
-                  }
-                  fulfillments(first: 5) {
-                    nodes {
-                      displayStatus
-                      estimatedDeliveryAt
-                      trackingInfo(first: 3) {
-                        company
-                        number
-                        url
-                      }
                     }
                   }
                 }

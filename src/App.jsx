@@ -24,15 +24,27 @@ import { useCustomer }   from './hooks/useCustomer'
 function getInitialPage() {
   const path   = window.location.pathname
   const search = window.location.search
-  // Callback from Shopify login — must have code AND state
+
+  // If already logged in and landing on callback, skip to account
+  const hasToken    = !!localStorage.getItem('neon_customer_token')
+  const hasCustomer = !!localStorage.getItem('neon_customer')
+
+  // Callback from Shopify — only treat as callback if NOT already logged in
   if (path.includes('/account/callback') && search.includes('code=') && search.includes('state=')) {
+    if (hasToken && hasCustomer) {
+      // Already logged in — back button hit, go to account instead
+      window.history.replaceState({}, '', '/')
+      return 'account'
+    }
     return 'callback'
   }
+
   // Returned from callback with success flag
   if (search.includes('account=1')) {
     window.history.replaceState({}, '', '/')
     return 'account'
   }
+
   return 'home'
 }
 

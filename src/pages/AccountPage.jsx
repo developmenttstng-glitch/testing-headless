@@ -342,7 +342,7 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                     <tr>
                       <th>Product</th>
                       <th style={{textAlign:'center'}}>Qty</th>
-                      <th style={{textAlign:'right'}}>Price</th>
+
                     </tr>
                   </thead>
                   <tbody>
@@ -357,9 +357,7 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                         <td style={{textAlign:'center',fontFamily:'var(--mono)',fontSize:'12px'}}>
                           {item.quantity}
                         </td>
-                        <td style={{textAlign:'right',fontFamily:'var(--mono)',fontSize:'12px'}}>
-                          {item.originalTotalPrice ? money(item.originalTotalPrice) : '—'}
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
@@ -370,12 +368,7 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
               <div>
                 <div className="od-section-title">// Order total</div>
                 <div className="od-totals">
-                  {activeOrder.subtotal && (
-                    <div className="od-total-row">
-                      <span className="od-total-lbl">Subtotal</span>
-                      <span className="od-total-val">{money(activeOrder.subtotal)}</span>
-                    </div>
-                  )}
+
                   {activeOrder.totalShipping && (
                     <div className="od-total-row">
                       <span className="od-total-lbl">Shipping</span>
