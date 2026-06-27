@@ -10,7 +10,7 @@ const DEFAULT_PLAYLISTS = [
   { id: 4, title: 'Silent Sanctuary',       playlistId: 'PLEFw-gRT1Nu9m_4flpFoUB4-MnV0-H1YB' },
   { id: 5, title: 'Eheads, Parokya, Rivermaya',       playlistId: 'PLiy0XOfUv4hG015r78ijWECJ-BZHdxyEJ' },
   { id: 6, title: '6Cyclemind, Cueshe, Sponge Cola, SugarFree',       playlistId: 'PLEbKodTRJs9--8H7ACBA7wnJIR53Eu8BW' },
-  { id: 7, title: 'Playlist 7',       playlistId: '' },
+  { id: 7, title: 'Skate Avenue AI',       playlistId: 'RDEMpCaW2ddXCkx_caBdDrdDAg' },
   { id: 8, title: 'Playlist 8',       playlistId: '' },
   { id: 9, title: 'Playlist 9',       playlistId: '' },
   { id: 10, title: 'Playlist 10',     playlistId: '' },
