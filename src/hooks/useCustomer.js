@@ -1,81 +1,73 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 const STORAGE_KEY = 'neon_customer'
 const TOKEN_KEY   = 'neon_customer_token'
 
-// ── Shopify Customer Account API helpers ─────────────────────────────────────
-// Uses PKCE (Proof Key for Code Exchange) — no client secret needed in frontend
-
-function generateRandomString(length = 64) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
-  const array = new Uint8Array(length)
-  window.crypto.getRandomValues(array)
-  return Array.from(array, byte => chars[byte % chars.length]).join('')
-}
-
-async function generateCodeChallenge(verifier) {
-  const encoder = new TextEncoder()
-  const data    = encoder.encode(verifier)
-  const digest  = await window.crypto.subtle.digest('SHA-256', data)
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-
-function getShopDomain() {
-  return import.meta.env.VITE_SHOPIFY_STORE_DOMAIN || ''
-}
-
-function getClientId() {
-  return import.meta.env.VITE_SHOPIFY_CUSTOMER_CLIENT_ID || ''
-}
-
-// ── IMPORTANT: Update these if you change your hosting or store ──────────────
+// ── Config ────────────────────────────────────────────────────────────────────
+// Update APP_URL if you change your hosting domain
 const APP_URL  = 'https://testing-headless.pages.dev'
-// Your Shopify store numeric ID — found in your Shopify admin URL:
-// admin.shopify.com/store/YOUR-STORE/headless/NUMERIC-ID/customer_api
-//                                             ^^^^^^^^^^
-const STORE_ID = '69915508787'  // from the token endpoint URL in your screenshot
+const STORE_ID = '69915508787'
 
-function getRedirectUri() {
-  return `${APP_URL}/account/callback`
+function getClientId()    { return import.meta.env.VITE_SHOPIFY_CUSTOMER_CLIENT_ID || '' }
+function getRedirectUri() { return `${APP_URL}/account/callback` }
+
+// ── PKCE helpers ──────────────────────────────────────────────────────────────
+function randomString(n = 64) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'
+  const arr   = new Uint8Array(n)
+  window.crypto.getRandomValues(arr)
+  return Array.from(arr, b => chars[b % chars.length]).join('')
 }
 
-function getShopId() {
-  return STORE_ID
+async function codeChallenge(verifier) {
+  const data   = new TextEncoder().encode(verifier)
+  const digest = await window.crypto.subtle.digest('SHA-256', data)
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'')
+}
+
+// ── Decode JWT payload ────────────────────────────────────────────────────────
+function decodeJWT(token) {
+  try {
+    const payload = token.split('.')[1]
+    const padded  = payload + '='.repeat((4 - payload.length % 4) % 4)
+    const base64  = padded.replace(/-/g,'+').replace(/_/g,'/')
+    return JSON.parse(atob(base64))
+  } catch {
+    return null
+  }
 }
 
 export function useCustomer() {
-  const [customer,    setCustomer]    = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? JSON.parse(saved) : null
-    } catch { return null }
+  const [customer, setCustomer] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
   })
-  const [token,       setToken]       = useState(() => {
-    return localStorage.getItem(TOKEN_KEY) || null
-  })
-  const [loading,     setLoading]     = useState(false)
-  const [error,       setError]       = useState(null)
+  const [token, setToken] = useState(() =>
+    localStorage.getItem(TOKEN_KEY) || null
+  )
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState(null)
 
-  const isLoggedIn = !!token && !!customer
+  // Resolve from localStorage synchronously in case React state lags
+  const resolvedCustomer = customer || (() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
+  })()
+  const resolvedToken  = token  || localStorage.getItem(TOKEN_KEY)
+  const isLoggedIn     = !!(resolvedCustomer && resolvedToken)
 
-  // ── Login — redirect to Shopify hosted login ─────────────────────────────
+  // ── Login ──────────────────────────────────────────────────────────────────
   const login = useCallback(async () => {
+    setError(null)
     try {
-      setError(null)
-      const verifier  = generateRandomString()
-      const challenge = await generateCodeChallenge(verifier)
-      const state     = generateRandomString(16)
-
-      // Store verifier and state for callback verification
+      const verifier   = randomString()
+      const challenge  = await codeChallenge(verifier)
+      const state      = randomString(16)
       sessionStorage.setItem('pkce_verifier', verifier)
       sessionStorage.setItem('pkce_state',    state)
 
-      const shop     = getShopDomain()
       const clientId = getClientId()
-
-      if (!shop || !clientId) {
-        setError('Customer Account API not configured. Add VITE_SHOPIFY_CUSTOMER_CLIENT_ID to your .env')
+      if (!clientId) {
+        setError('VITE_SHOPIFY_CUSTOMER_CLIENT_ID is not set')
         return
       }
 
@@ -89,47 +81,42 @@ export function useCustomer() {
         code_challenge_method: 'S256',
       })
 
-      const authUrl = `https://shopify.com/authentication/${getShopId()}/oauth/authorize?${params}`
-      window.location.href = authUrl
+      window.location.href =
+        `https://shopify.com/authentication/${STORE_ID}/oauth/authorize?${params}`
     } catch (err) {
       setError('Login failed. Please try again.')
-      console.error('Login error:', err)
+      console.error(err)
     }
   }, [])
 
-  // ── Handle callback — exchange code for token ────────────────────────────
+  // ── Handle OAuth callback ─────────────────────────────────────────────────
   const handleCallback = useCallback(async () => {
     const params   = new URLSearchParams(window.location.search)
     const code     = params.get('code')
     const state    = params.get('state')
-    const error    = params.get('error')
+    const errParam = params.get('error')
 
-    if (error) {
-      setError('Login was cancelled or failed.')
-      return false
-    }
+    if (errParam) { setError('Login cancelled.'); return false }
 
     const savedState    = sessionStorage.getItem('pkce_state')
     const savedVerifier = sessionStorage.getItem('pkce_verifier')
 
     if (!code || state !== savedState) {
-      setError('Security check failed. Please try logging in again.')
+      setError('Security check failed. Please try again.')
       return false
     }
 
     setLoading(true)
     try {
-      const shop     = getShopDomain()
-      const clientId = getClientId()
-
-      const tokenRes = await fetch(
-        `https://shopify.com/authentication/${getShopId()}/oauth/token`,
+      // Exchange code for tokens
+      const res = await fetch(
+        `https://shopify.com/authentication/${STORE_ID}/oauth/token`,
         {
-          method: 'POST',
+          method:  'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: new URLSearchParams({
             grant_type:    'authorization_code',
-            client_id:     clientId,
+            client_id:     getClientId(),
             redirect_uri:  getRedirectUri(),
             code,
             code_verifier: savedVerifier,
@@ -137,104 +124,84 @@ export function useCustomer() {
         }
       )
 
-      if (!tokenRes.ok) throw new Error('Token exchange failed')
+      if (!res.ok) {
+        const txt = await res.text()
+        throw new Error(`Token exchange failed: ${res.status} ${txt}`)
+      }
 
-      const tokenData = await tokenRes.json()
-      const accessToken = tokenData.access_token
-      const idToken     = tokenData.id_token
+      const data        = await res.json()
+      const accessToken = data.access_token
+      const idToken     = data.id_token   // JWT with customer profile — no extra request needed
 
-      // Store token
-      localStorage.setItem(TOKEN_KEY, accessToken)
+      if (!accessToken) throw new Error('No access token in response')
+
+      // ── Parse customer from id_token ────────────────────────────────────
+      // id_token is a JWT already containing email, name etc.
+      // We decode it directly — NO userinfo endpoint call needed (it has CORS issues)
+      const profile = idToken ? decodeJWT(idToken) : null
+
+      const customerData = {
+        id:        profile?.sub         || '',
+        email:     profile?.email       || '',
+        firstName: profile?.given_name  || profile?.first_name  || '',
+        lastName:  profile?.family_name || profile?.last_name   || '',
+        name:      profile?.name        || profile?.email       || 'Customer',
+      }
+
+      // Save to localStorage and React state
+      localStorage.setItem(TOKEN_KEY,    accessToken)
+      localStorage.setItem(STORAGE_KEY,  JSON.stringify(customerData))
       setToken(accessToken)
+      setCustomer(customerData)
 
-      // Parse customer profile from id_token (no extra network request needed)
-      const profile = await fetchCustomerProfile(accessToken, idToken)
-
-      // Clean up PKCE values
+      // Clean up PKCE
       sessionStorage.removeItem('pkce_verifier')
       sessionStorage.removeItem('pkce_state')
 
       return true
 
     } catch (err) {
-      setError('Failed to complete login. Please try again.')
       console.error('Callback error:', err)
+      setError('Sign in failed. Please try again.')
       return false
     } finally {
       setLoading(false)
     }
   }, [])
 
-  // ── Fetch customer profile ───────────────────────────────────────────────
-  const fetchCustomerProfile = useCallback(async (accessToken) => {
-    try {
-      const res  = await fetch(
-        `https://shopify.com/authentication/${getShopId()}/oauth/userinfo`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      )
-      if (!res.ok) throw new Error('Profile fetch failed')
-      const profile = await res.json()
-
-      const customerData = {
-        id:        profile.sub,
-        email:     profile.email,
-        firstName: profile.given_name  || '',
-        lastName:  profile.family_name || '',
-        name:      profile.name        || profile.email,
-      }
-
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(customerData))
-      setCustomer(customerData)
-      return customerData
-    } catch (err) {
-      console.error('Profile fetch error:', err)
-      return null
-    }
-  }, [])
-
-  // ── Fetch orders via Storefront API ─────────────────────────────────────
+  // ── Fetch orders ──────────────────────────────────────────────────────────
   const fetchOrders = useCallback(async () => {
-    if (!token) return []
+    const t = resolvedToken
+    if (!t) return []
     try {
       const res = await fetch(
-        `https://${getShopDomain()}/api/2025-01/graphql.json`,
+        `https://${import.meta.env.VITE_SHOPIFY_STORE_DOMAIN}/api/2025-01/graphql.json`,
         {
-          method: 'POST',
+          method:  'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Shopify-Customer-Access-Token': token,
+            'X-Shopify-Customer-Access-Token': t,
           },
-          body: JSON.stringify({
-            query: `{
-              customer {
-                orders(first: 10) {
-                  edges {
-                    node {
-                      id orderNumber name
-                      processedAt
-                      financialStatus fulfillmentStatus
-                      currentTotalPrice { amount currencyCode }
-                      lineItems(first: 3) {
-                        edges {
-                          node { title quantity }
-                        }
-                      }
-                    }
-                  }
-                }
+          body: JSON.stringify({ query: `{
+            customer {
+              orders(first:10) {
+                edges { node {
+                  id orderNumber name processedAt
+                  financialStatus fulfillmentStatus
+                  currentTotalPrice { amount currencyCode }
+                  lineItems(first:3) { edges { node { title quantity } } }
+                } }
               }
-            }`,
-          }),
+            }
+          }` }),
         }
       )
-      const data = await res.json()
-      return data?.data?.customer?.orders?.edges?.map(e => e.node) || []
-    } catch {
-      return []
-    }
-  }, [token])
+      const json = await res.json()
+      return json?.data?.customer?.orders?.edges?.map(e => e.node) || []
+    } catch { return [] }
+  }, [resolvedToken])
 
-  // ── Logout ───────────────────────────────────────────────────────────────
+  // ── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(TOKEN_KEY)
@@ -243,17 +210,10 @@ export function useCustomer() {
     setError(null)
   }, [])
 
-  // Also sync state from localStorage in case it was written by callback
-  // but React state hasn't updated yet
-  const resolvedCustomer = customer || (() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
-  })()
-  const resolvedToken = token || localStorage.getItem(TOKEN_KEY)
-
   return {
     customer:  resolvedCustomer,
     token:     resolvedToken,
-    isLoggedIn: !!(resolvedCustomer && resolvedToken),
+    isLoggedIn,
     loading,
     error,
     setError,
