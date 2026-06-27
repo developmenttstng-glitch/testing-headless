@@ -101,7 +101,7 @@ export default function ProductCard({ product, onAddToCart, cartLoading, onViewD
         .view-link:hover { color:var(--accent); }
       `}</style>
 
-      <div className="product-card" style={{cursor:"pointer"}} onClick={() => onViewDetail?.(product)}>
+      <div className="product-card">
         <div className="product-img">
           {image
             ? <img src={image} alt={product.featuredImage?.altText || product.title}/>

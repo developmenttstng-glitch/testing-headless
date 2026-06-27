@@ -1,5 +1,5 @@
 import { formatPrice } from '../lib/currency'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 export default function ProductDetailPage({ product, onAddToCart, cartLoading, onClose, isWishlisted, onToggleWishlist }) {
   const variants  = product.variants.edges.map(e => e.node)
@@ -128,11 +128,7 @@ export default function ProductDetailPage({ product, onAddToCart, cartLoading, o
         }
       `}</style>
 
-      <div
-          className="pdp-overlay"
-          ref={overlayRef}
-          onMouseDown={e => { overlayRef.current._mouseDownTarget = e.target }}
-          onClick={e => { if(overlayRef.current._mouseDownTarget === overlayRef.current) onClose() }}>
+      <div className="pdp-overlay" onClick={onClose}>
         <div className="pdp-modal" onClick={e => e.stopPropagation()}>
           <button className="pdp-close" onClick={e => { e.stopPropagation(); onClose() }}>×</button>
 
