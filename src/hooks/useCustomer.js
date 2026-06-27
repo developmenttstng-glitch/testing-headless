@@ -70,10 +70,13 @@ export function useCustomer() {
     setError(null)
     try {
       const clientId = getClientId()
+      console.log('[Auth] Client ID:', clientId ? 'found' : 'MISSING')
       if (!clientId) { setError('VITE_SHOPIFY_CUSTOMER_CLIENT_ID not set'); return }
 
       // Step 1: Discover endpoints (docs recommended)
+      console.log('[Auth] Discovering endpoints from:', `https://${SHOP_DOMAIN}/.well-known/openid-configuration`)
       const config = await discoverAuthEndpoints()
+      console.log('[Auth] Auth endpoint:', config.authorization_endpoint)
 
       // Step 2: Generate PKCE
       const verifier   = generateCodeVerifier()
