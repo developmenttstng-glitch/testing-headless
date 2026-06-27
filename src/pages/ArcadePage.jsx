@@ -44,7 +44,7 @@ export default function ArcadePage() {
   const [nameInput,setNameInput]= useState('')
   const [submitted,setSubmitted]= useState(false)
 
-  const { getBest, getTop, addScore } = useScores()
+  const { getBest, getTop, addScore, refreshScores } = useScores()
 
   function openGame(g) {
     setActive(g); setScore(0); setLevel(1)
@@ -52,6 +52,8 @@ export default function ArcadePage() {
     setSubmitted(false); setNameInput('')
     setGameKey(k => k+1)
     window.scrollTo({ top:0 })
+    // Pull latest global scores in background
+    refreshScores(g.id)
   }
 
   function handleGameOver(s) { addScore(active.id, s); setScore(s); setEnded(true) }
@@ -170,7 +172,7 @@ export default function ArcadePage() {
         <div className="arc-hero">
           <div className="arc-ey">// Entertainment module</div>
           <div className="arc-title">ARCADE</div>
-          <div className="arc-sub">Fifteen games. Infinite runs. Local leaderboard.</div>
+          <div className="arc-sub">Fifteen games. Infinite runs. Global leaderboard.</div>
         </div>
 
         <div className="game-strip">
