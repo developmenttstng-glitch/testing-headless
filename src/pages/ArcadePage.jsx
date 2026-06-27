@@ -71,6 +71,8 @@ export default function ArcadePage() {
       case 'runner':   return <Runner    {...props}/>
       case 'pong':     return <Pong      {...props}/>
       case '2048':     return <Game2048  {...props}/>
+      case 'whack':     return <Whack      {...props}/>
+      case 'color':     return <ColorMatch {...props}/>
     }
   }
 
