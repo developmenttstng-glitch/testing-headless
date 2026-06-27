@@ -29,14 +29,19 @@ function getClientId() {
   return import.meta.env.VITE_SHOPIFY_CUSTOMER_CLIENT_ID || ''
 }
 
+// ── IMPORTANT: Update these if you change your hosting or store ──────────────
+const APP_URL  = 'https://testing-headless.pages.dev'
+// Your Shopify store numeric ID — found in your Shopify admin URL:
+// admin.shopify.com/store/YOUR-STORE/headless/NUMERIC-ID/customer_api
+//                                             ^^^^^^^^^^
+const STORE_ID = '69915508787'  // from the token endpoint URL in your screenshot
+
 function getRedirectUri() {
-  // Always use the production URL — Shopify requires HTTPS
-  let base = import.meta.env.VITE_APP_URL || window.location.origin
-  // Ensure it has https://
-  if (!base.startsWith('http')) base = `https://${base}`
-  // Remove trailing slash
-  base = base.replace(/\/$/, '')
-  return `${base}/account/callback`
+  return `${APP_URL}/account/callback`
+}
+
+function getShopId() {
+  return STORE_ID
 }
 
 export function useCustomer() {
@@ -71,9 +76,6 @@ export function useCustomer() {
         return
       }
 
-      // Extract just the store name (without .myshopify.com)
-      const storeName = shop.replace('.myshopify.com', '')
-
       const params = new URLSearchParams({
         client_id:             clientId,
         response_type:         'code',
@@ -84,7 +86,7 @@ export function useCustomer() {
         code_challenge_method: 'S256',
       })
 
-      const authUrl = `https://shopify.com/authentication/${storeName}/oauth/authorize?${params}`
+      const authUrl = `https://shopify.com/authentication/${getShopId()}/oauth/authorize?${params}`
       window.location.href = authUrl
     } catch (err) {
       setError('Login failed. Please try again.')
@@ -117,9 +119,8 @@ export function useCustomer() {
       const shop     = getShopDomain()
       const clientId = getClientId()
 
-      const storeName = shop.replace('.myshopify.com', '')
       const tokenRes = await fetch(
-        `https://shopify.com/authentication/${storeName}/oauth/token`,
+        `https://shopify.com/authentication/${getShopId()}/oauth/token`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -165,10 +166,8 @@ export function useCustomer() {
   // ── Fetch customer profile ───────────────────────────────────────────────
   const fetchCustomerProfile = useCallback(async (accessToken) => {
     try {
-      const shop      = getShopDomain()
-      const storeName = shop.replace('.myshopify.com', '')
       const res  = await fetch(
-        `https://shopify.com/authentication/${storeName}/oauth/userinfo`,
+        `https://shopify.com/authentication/${getShopId()}/oauth/userinfo`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       )
       if (!res.ok) throw new Error('Profile fetch failed')
