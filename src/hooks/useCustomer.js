@@ -31,10 +31,12 @@ function getClientId() {
 
 function getRedirectUri() {
   // Always use the production URL — Shopify requires HTTPS
-  // localhost is not allowed as a redirect URI
-  const prod = import.meta.env.VITE_APP_URL
-  if (prod) return `${prod}/account/callback`
-  return `${window.location.origin}/account/callback`
+  let base = import.meta.env.VITE_APP_URL || window.location.origin
+  // Ensure it has https://
+  if (!base.startsWith('http')) base = `https://${base}`
+  // Remove trailing slash
+  base = base.replace(/\/$/, '')
+  return `${base}/account/callback`
 }
 
 export function useCustomer() {
