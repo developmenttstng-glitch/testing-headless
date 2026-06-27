@@ -70,18 +70,9 @@ export default function App() {
   function navigate(p) { setPage(p); setCartOpen(false) }
   function handleNav(p) { if (p === 'music') setMusicOn(true); navigate(p) }
 
-  const closingRef = { current: false }
-
   function handleViewDetail(product) {
-    if(closingRef.current) return
     addRecentlyViewed(product)
     setDetailProd(product)
-  }
-
-  function handleCloseDetail() {
-    closingRef.current = true
-    setDetailProd(null)
-    setTimeout(() => { closingRef.current = false }, 300)
   }
 
   const sharedProps = {
@@ -148,7 +139,7 @@ export default function App() {
           product={detailProd}
           onAddToCart={addToCart}
           cartLoading={cartLoading}
-          onClose={handleCloseDetail}
+          onClose={() => setDetailProd(null)}
           isWishlisted={isWishlisted}
           onToggleWishlist={toggleWishlist}
         />

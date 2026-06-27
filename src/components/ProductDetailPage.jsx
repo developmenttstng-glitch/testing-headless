@@ -29,6 +29,7 @@ export default function ProductDetailPage({ product, onAddToCart, cartLoading, o
           z-index: 400; display: flex; align-items: center; justify-content: center;
           padding: 20px;
           animation: pdpFadeIn 0.2s ease;
+          pointer-events: all;
         }
         @keyframes pdpFadeIn { from{opacity:0} to{opacity:1} }
         .pdp-modal {
@@ -128,7 +129,7 @@ export default function ProductDetailPage({ product, onAddToCart, cartLoading, o
         }
       `}</style>
 
-      <div className="pdp-overlay" onClick={onClose}>
+      <div className="pdp-overlay" onClick={e => { e.stopPropagation(); e.preventDefault(); onClose() }}>
         <div className="pdp-modal" onClick={e => e.stopPropagation()}>
           <button className="pdp-close" onClick={e => { e.stopPropagation(); onClose() }}>×</button>
 
