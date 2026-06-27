@@ -14,7 +14,6 @@ import MemoryMatch from '../components/games/MemoryMatch'
 import Minesweeper from '../components/games/Minesweeper'
 import Chess       from '../components/games/Chess'
 import Sudoku      from '../components/games/Sudoku'
-import ColorMatch  from '../components/games/ColorMatch'
 
 const GAMES = [
   { id:'tetris',   name:'TETRIS',         icon:'▦', hint:'↑ rotate · ↓ soft · SPC hard drop · TAB hold · P pause', hasLevel:true },
