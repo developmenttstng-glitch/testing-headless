@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { shopifyClient, COUNTRY_CODE } from '../lib/shopify'
-import { CREATE_CART, ADD_CART_LINES } from '../lib/queries'
+import { CREATE_CART, ADD_CART_LINES, UPDATE_CART_LINES, REMOVE_CART_LINES } from '../lib/queries'
 
 export function useCart() {
   const [cart,    setCart]    = useState(null)
@@ -48,9 +48,47 @@ export function useCart() {
     }
   }
 
+  async function updateQuantity(lineId, quantity) {
+    if(!cart) return
+    setLoading(true)
+    try {
+      const { data } = await shopifyClient.request(UPDATE_CART_LINES, {
+        variables: {
+          cartId: cart.id,
+          lines:  [{ id: lineId, quantity }],
+          country: COUNTRY_CODE,
+        },
+      })
+      setCart(data.cartLinesUpdate.cart)
+    } catch(err) {
+      console.error('Update error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function removeLine(lineId) {
+    if(!cart) return
+    setLoading(true)
+    try {
+      const { data } = await shopifyClient.request(REMOVE_CART_LINES, {
+        variables: {
+          cartId:  cart.id,
+          lineIds: [lineId],
+          country: COUNTRY_CODE,
+        },
+      })
+      setCart(data.cartLinesRemove.cart)
+    } catch(err) {
+      console.error('Remove error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   function goToCheckout() {
     if (cart?.checkoutUrl) window.location.href = cart.checkoutUrl
   }
 
-  return { cart, lines, totalItems, totalPrice, currency, loading, addToCart, goToCheckout }
+  return { cart, lines, totalItems, totalPrice, currency, loading, addToCart, updateQuantity, removeLine, goToCheckout }
 }

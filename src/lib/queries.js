@@ -103,3 +103,55 @@ export const GET_CART = `
     }
   }
 `
+
+export const UPDATE_CART_LINES = `
+  mutation CartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!, $country: CountryCode!)
+    @inContext(country: $country) {
+    cartLinesUpdate(cartId: $cartId, lines: $lines) {
+      cart {
+        id checkoutUrl
+        lines(first: 10) {
+          edges {
+            node {
+              id quantity
+              merchandise {
+                ... on ProductVariant {
+                  id title
+                  product { title }
+                  price { amount currencyCode }
+                }
+              }
+            }
+          }
+        }
+        cost { totalAmount { amount currencyCode } }
+      }
+    }
+  }
+`
+
+export const REMOVE_CART_LINES = `
+  mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!, $country: CountryCode!)
+    @inContext(country: $country) {
+    cartLinesRemove(cartId: $cartId, lineIds: $lineIds) {
+      cart {
+        id checkoutUrl
+        lines(first: 10) {
+          edges {
+            node {
+              id quantity
+              merchandise {
+                ... on ProductVariant {
+                  id title
+                  product { title }
+                  price { amount currencyCode }
+                }
+              }
+            }
+          }
+        }
+        cost { totalAmount { amount currencyCode } }
+      }
+    }
+  }
+`

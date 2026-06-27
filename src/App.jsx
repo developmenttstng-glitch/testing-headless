@@ -56,7 +56,7 @@ export default function App() {
 
   const { products, loading }       = useProducts(12)
   const { lines, totalItems, totalPrice, currency,
-          loading: cartLoading, addToCart, goToCheckout } = useCart()
+          loading: cartLoading, addToCart, updateQuantity, removeLine, goToCheckout } = useCart()
   const { items: wishlist, toggle: toggleWishlist,
           isWishlisted, count: wishCount } = useWishlist()
   const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
@@ -128,6 +128,8 @@ export default function App() {
           onCheckout={goToCheckout}
           cartLoading={cartLoading}
           customer={customer}
+          onUpdateQuantity={updateQuantity}
+          onRemoveLine={removeLine}
           onLogin={() => { setCartOpen(false); login() }}
         />
       )}
