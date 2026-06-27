@@ -210,13 +210,13 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                           {order.financialStatus}
                         </div>
                         <div className="order-total">
-                          {order.currentTotalPrice.currencyCode} ${parseFloat(order.currentTotalPrice.amount).toFixed(2)}
+                          {order.totalPrice?.currencyCode} ${parseFloat(order.totalPrice?.amount).toFixed(2)}
                         </div>
                       </div>
                       <div className="order-items">
-                        {order.lineItems.edges.map(e => (
-                          <div className="order-item-row" key={e.node.title}>
-                            {e.node.title} × {e.node.quantity}
+                        {(order.lineItems?.nodes || order.lineItems?.edges?.map(e=>e.node) || []).map(item => (
+                          <div className="order-item-row" key={item.title}>
+                            {item.title} × {item.quantity}
                           </div>
                         ))}
                       </div>
