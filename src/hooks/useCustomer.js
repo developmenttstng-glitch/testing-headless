@@ -141,13 +141,14 @@ export function useCustomer() {
 
       const tokenData = await tokenRes.json()
       const accessToken = tokenData.access_token
+      const idToken     = tokenData.id_token
 
       // Store token
       localStorage.setItem(TOKEN_KEY, accessToken)
       setToken(accessToken)
 
-      // Fetch customer profile and store it
-      const profile = await fetchCustomerProfile(accessToken)
+      // Parse customer profile from id_token (no extra network request needed)
+      const profile = await fetchCustomerProfile(accessToken, idToken)
 
       // Clean up PKCE values
       sessionStorage.removeItem('pkce_verifier')
@@ -242,10 +243,17 @@ export function useCustomer() {
     setError(null)
   }, [])
 
+  // Also sync state from localStorage in case it was written by callback
+  // but React state hasn't updated yet
+  const resolvedCustomer = customer || (() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) } catch { return null }
+  })()
+  const resolvedToken = token || localStorage.getItem(TOKEN_KEY)
+
   return {
-    customer,
-    token,
-    isLoggedIn,
+    customer:  resolvedCustomer,
+    token:     resolvedToken,
+    isLoggedIn: !!(resolvedCustomer && resolvedToken),
     loading,
     error,
     setError,
