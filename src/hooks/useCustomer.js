@@ -284,8 +284,10 @@ export function useCustomer() {
                   }
                   fulfillments(first: 5) {
                     nodes {
-                      displayStatus
-                      trackingInfo {
+                      status
+                      estimatedDeliveryAt
+                      latestShipmentStatus
+                      trackingInformation {
                         company
                         number
                         url

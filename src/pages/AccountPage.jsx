@@ -413,12 +413,12 @@ export default function AccountPage({ customer, onLogout, fetchOrders, onNav }) 
                   ) : (
                     (activeOrder.fulfillments.nodes).map((f, i) => (
                       <div className="od-fulfillment" key={i}>
-                        <div className="od-fulfillment-status" style={{color: statusColor(f.displayStatus)}}>
-                          {f.displayStatus || 'Fulfilled'}
+                        <div className="od-fulfillment-status" style={{color: statusColor(f.status)}}>
+                          {f.status || 'Fulfilled'}
                         </div>
                         {/* trackingInfo is an array of tracking objects */}
-                        {(f.trackingInfo || []).length > 0 ? (
-                          (f.trackingInfo).map((t, j) => (
+                        {(f.trackingInformation || []).length > 0 ? (
+                          (f.trackingInformation).map((t, j) => (
                             <div className="od-tracking" key={j}>
                               {t.company && <span className="od-tracking-lbl">{t.company}</span>}
                               {t.number && <span className="od-tracking-num">{t.number}</span>}
