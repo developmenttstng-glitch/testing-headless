@@ -11,7 +11,7 @@ const links = [
   { label: 'Alarm',    page: 'alarm' },
 ]
 
-export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen }) {
+export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen, customer, onLogin, onAccount }) {
   const [scrolled,  setScrolled]  = useState(false)
   const [menuOpen,  setMenuOpen]  = useState(false)
 
@@ -73,6 +73,14 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen 
           width:16px; height:16px; background:#ff003c; color:white;
           font-size:9px; font-weight:700; border-radius:50%; margin-left:4px;
         }
+        .account-btn {
+          font-family:var(--mono); font-size:11px; letter-spacing:0.1em;
+          text-transform:uppercase; background:none;
+          border:1px solid rgba(0,255,200,0.2); color:var(--muted);
+          padding:6px 12px; transition:all 0.15s; cursor:pointer;
+        }
+        .account-btn:hover { border-color:var(--accent); color:var(--accent); }
+        .account-btn.logged-in { border-color:rgba(0,255,200,0.4); color:var(--accent); }
         .cart-badge {
           display:inline-flex; align-items:center; justify-content:center;
           width:18px; height:18px; background:var(--accent); color:var(--bg);
@@ -134,6 +142,15 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen 
           ))}
         </ul>
         <div className="nav-right">
+          {customer ? (
+            <button className="account-btn logged-in" onClick={onAccount}>
+              {customer.firstName || customer.email?.split('@')[0] || 'Account'}
+            </button>
+          ) : (
+            <button className="account-btn" onClick={onLogin}>
+              Sign in
+            </button>
+          )}
           <button className="cart-btn" onClick={onCartOpen}>
             Cart{totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
           </button>
