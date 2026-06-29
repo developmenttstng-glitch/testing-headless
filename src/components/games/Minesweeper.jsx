@@ -35,15 +35,21 @@ function flood(b, r, c) {
 
 const NC = ['','#00ffc8','#00c8ff','#ff003c','#bf00ff','#ff6600','#ffcc00','#00ff66','#fff']
 
-// Score = base 10000 minus time penalty. Faster = higher score.
-function calcScore(elapsedSec) {
-  return Math.max(100, 10000 - Math.floor(elapsedSec) * 30)
-}
-
 function fmtTime(sec) {
   const m = Math.floor(sec/60)
   const s = Math.floor(sec%60)
   return m>0 ? `${m}m ${s}s` : `${s}s`
+}
+
+// Time bonus added on top of accumulated score
+// Faster finish = bigger bonus
+function timeBonus(elapsedSec) {
+  if(elapsedSec <= 30)  return 5000
+  if(elapsedSec <= 60)  return 3000
+  if(elapsedSec <= 120) return 2000
+  if(elapsedSec <= 180) return 1000
+  if(elapsedSec <= 300) return 500
+  return 100
 }
 
 export default function Minesweeper({ onScore, onGameOver, onWin }) {
@@ -57,8 +63,9 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
     let revealed = 0
     let dead     = false
     let won      = false
-    let startTime= null   // Date.now() when first click
-    let elapsed  = 0      // seconds since start
+    let score    = 0
+    let startTime= null
+    let elapsed  = 0
     let timerRef = null
 
     function getElapsed() {
@@ -72,7 +79,7 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
         if(dead || won) { clearInterval(timerRef); return }
         elapsed = getElapsed()
         draw()
-      }, 500)
+      }, 1000)
     }
 
     function stopTimer() {
@@ -81,7 +88,7 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
     }
 
     function reset() {
-      board=null; flags=0; revealed=0; dead=false; won=false
+      board=null; flags=0; revealed=0; dead=false; won=false; score=0
       startTime=null; elapsed=0
       clearInterval(timerRef); timerRef=null
       draw()
@@ -90,34 +97,36 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
     function draw() {
       ctx.fillStyle='#03050a'; ctx.fillRect(0,0,280,320)
 
-      // Header
-      ctx.fillStyle='rgba(0,255,200,0.7)'; ctx.font='bold 11px monospace'
-      ctx.textAlign='left';  ctx.fillText(`💣 ${MINES-flags}`, 6, 18)
-      // Timer
+      // Header row 1 — mines left + timer
+      ctx.font='bold 11px monospace'; ctx.textAlign='left'
+      ctx.fillStyle='rgba(0,255,200,0.8)'
+      ctx.fillText(`💣 ${MINES-flags}`, 6, 18)
+
       ctx.textAlign='center'
-      ctx.fillStyle='rgba(255,204,0,0.8)'; ctx.font='bold 11px monospace'
-      ctx.fillText(board && !dead && !won ? `⏱ ${fmtTime(elapsed)}` : board ? `⏱ ${fmtTime(elapsed)}` : '⏱ 0s', 140, 18)
-      // Score
+      ctx.fillStyle='rgba(255,204,0,0.85)'
+      ctx.fillText(startTime ? `⏱ ${fmtTime(elapsed)}` : '⏱ 0s', 140, 18)
+
       ctx.textAlign='right'
-      ctx.fillStyle='rgba(0,255,200,0.6)'; ctx.font='11px monospace'
-      const sc = startTime ? calcScore(elapsed) : 10000
-      ctx.fillText(`Score: ${sc}`, 274, 18)
+      ctx.fillStyle='rgba(0,255,200,0.7)'
+      ctx.fillText(`Score: ${score}`, 274, 18)
 
       // Status line
-      ctx.fillStyle='rgba(0,255,200,0.3)'; ctx.font='9px monospace'; ctx.textAlign='center'
-      if(dead)      ctx.fillText('💥 BOOM! Click to restart', 140, 34)
-      else if(won)  ctx.fillText(`✓ Cleared in ${fmtTime(elapsed)}! Click to restart`, 140, 34)
-      else if(!board) ctx.fillText('Click any cell to start — 99 mines!', 140, 34)
-      else          ctx.fillText('Right-click to flag a mine', 140, 34)
+      ctx.font='9px monospace'; ctx.textAlign='center'
+      ctx.fillStyle='rgba(0,255,200,0.35)'
+      if(dead)       ctx.fillText('💥 BOOM! Click to restart', 140, 34)
+      else if(won)   ctx.fillText(`✓ Done in ${fmtTime(elapsed)}! Click to restart`, 140, 34)
+      else if(!board) ctx.fillText('Click to start — 99 mines!', 140, 34)
+      else           ctx.fillText('Right-click to flag', 140, 34)
 
-      // Separator line
-      ctx.strokeStyle='rgba(0,255,200,0.15)'; ctx.lineWidth=0.5
+      // Separator
+      ctx.strokeStyle='rgba(0,255,200,0.12)'; ctx.lineWidth=0.5
       ctx.beginPath(); ctx.moveTo(0,40); ctx.lineTo(280,40); ctx.stroke()
 
       // Empty grid before first click
       if(!board) {
         for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
-          ctx.fillStyle='#0d1825'; ctx.strokeStyle='rgba(0,255,200,0.1)'; ctx.lineWidth=0.5
+          ctx.fillStyle='#141e2e'
+          ctx.strokeStyle='rgba(0,255,200,0.12)'; ctx.lineWidth=0.5
           ctx.fillRect(OX+c*SQ, OY+r*SQ, SQ, SQ)
           ctx.strokeRect(OX+c*SQ, OY+r*SQ, SQ, SQ)
         }
@@ -129,21 +138,38 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
         const x = OX+c*SQ, y = OY+r*SQ
 
         if(cell.revealed) {
-          ctx.fillStyle = cell.mine ? '#1a0010' : '#0a1520'
-          ctx.fillRect(x,y,SQ,SQ)
-          ctx.strokeStyle='rgba(0,255,200,0.04)'; ctx.lineWidth=0.5; ctx.strokeRect(x,y,SQ,SQ)
           if(cell.mine) {
-            ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('💣',x+SQ/2,y+SQ/2+4)
-          } else if(cell.count > 0) {
-            ctx.fillStyle=NC[cell.count]; ctx.font='bold 9px monospace'
-            ctx.textAlign='center'; ctx.fillText(cell.count, x+SQ/2, y+SQ/2+3)
+            // Exploded mine — red tint
+            ctx.fillStyle='#2a0018'
+            ctx.fillRect(x,y,SQ,SQ)
+            ctx.strokeStyle='rgba(255,0,60,0.3)'; ctx.lineWidth=0.5; ctx.strokeRect(x,y,SQ,SQ)
+            ctx.font='10px monospace'; ctx.textAlign='center'
+            ctx.fillText('💣',x+SQ/2,y+SQ/2+4)
+          } else {
+            // Revealed safe cell — clearly lighter than unrevealed
+            ctx.fillStyle='#1e3a50'
+            ctx.fillRect(x,y,SQ,SQ)
+            // Subtle inner highlight to show it's pressed/revealed
+            ctx.fillStyle='rgba(0,255,200,0.04)'
+            ctx.fillRect(x+1,y+1,SQ-2,SQ-2)
+            ctx.strokeStyle='rgba(0,255,200,0.08)'; ctx.lineWidth=0.5; ctx.strokeRect(x,y,SQ,SQ)
+            if(cell.count > 0) {
+              ctx.fillStyle=NC[cell.count]
+              ctx.font='bold 9px monospace'; ctx.textAlign='center'
+              ctx.fillText(cell.count, x+SQ/2, y+SQ/2+3)
+            }
           }
         } else {
-          ctx.fillStyle = cell.flagged ? '#1a1200' : '#0d1825'
-          ctx.strokeStyle='rgba(0,255,200,0.15)'; ctx.lineWidth=0.5
+          // Unrevealed — dark, clearly distinct from revealed
+          ctx.fillStyle= cell.flagged ? '#1e1800' : '#0d1825'
+          ctx.strokeStyle='rgba(0,255,200,0.18)'; ctx.lineWidth=0.5
           ctx.fillRect(x,y,SQ,SQ); ctx.strokeRect(x,y,SQ,SQ)
+          // Slight bevel effect on top-left edges to look raised
+          ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=0.5
+          ctx.beginPath(); ctx.moveTo(x,y+SQ); ctx.lineTo(x,y); ctx.lineTo(x+SQ,y); ctx.stroke()
           if(cell.flagged) {
-            ctx.font='9px monospace'; ctx.textAlign='center'; ctx.fillText('🚩',x+SQ/2,y+SQ/2+3)
+            ctx.font='9px monospace'; ctx.textAlign='center'
+            ctx.fillText('🚩',x+SQ/2,y+SQ/2+3)
           }
         }
       }
@@ -171,19 +197,19 @@ export default function Minesweeper({ onScore, onGameOver, onWin }) {
 
       if(cell.mine) {
         board.forEach(row=>row.forEach(cl=>{ if(cl.mine) cl.revealed=true }))
-        dead=true
-        stopTimer()
-        onGameOver(0)
+        dead=true; stopTimer(); onGameOver(score)
       } else {
         flood(board,r,c)
         revealed = board.flat().filter(cl=>cl.revealed&&!cl.mine).length
-        const sc = calcScore(getElapsed())
-        onScore(sc)
+        // Accumulate score — same as before
+        score = revealed * 10
+        onScore(score)
         if(revealed === ROWS*COLS-MINES) {
-          won=true
-          stopTimer()
-          const finalScore = calcScore(elapsed)
-          onWin(finalScore)
+          won=true; stopTimer()
+          // Add time bonus on top of accumulated score
+          const bonus = timeBonus(elapsed)
+          score = score + bonus
+          onWin(score)
         }
       }
       draw()
