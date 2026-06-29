@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 const COLS=16, ROWS=16, MINES=99
-const SQ=16, OX=2, OY=48
+const SQ=16, OX=12, OY=52
 
 function makeBoard(fr, fc) {
   const b = Array.from({length:ROWS}, ()=>
