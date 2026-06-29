@@ -230,19 +230,32 @@ export default function Tetris({ onScore, onGameOver }) {
         ctx.fillRect(OX+c*S+1, OY+r*S+S-4, S-2, 3)
       }))
 
-      // Ghost piece
+      // Ghost piece — bright enough to see on all displays
       if(state.piece) {
         const gy = ghostY()
-        ctx.fillStyle='rgba(0,255,200,0.08)'
-        state.piece.forEach((row,r)=>row.forEach((v,c)=>{
-          if(v) ctx.fillRect(OX+(state.px+c)*S+1, OY+(gy+r)*S+1, S-2, S-2)
-        }))
-        // Ghost border
-        ctx.strokeStyle='rgba(0,255,200,0.2)'
-        ctx.lineWidth=0.5
-        state.piece.forEach((row,r)=>row.forEach((v,c)=>{
-          if(v) ctx.strokeRect(OX+(state.px+c)*S+1, OY+(gy+r)*S+1, S-2, S-2)
-        }))
+        // Only draw ghost if it's not at same position as active piece
+        if(gy !== state.py) {
+          const ghostColor = COLORS[state.pc]
+          state.piece.forEach((row,r)=>row.forEach((v,c)=>{
+            if(!v) return
+            const gx = OX+(state.px+c)*S
+            const gyy = OY+(gy+r)*S
+            // Solid filled background
+            ctx.fillStyle='rgba(255,255,255,0.12)'
+            ctx.fillRect(gx+1, gyy+1, S-2, S-2)
+            // Coloured border — thick and bright
+            ctx.strokeStyle=ghostColor
+            ctx.lineWidth=1.5
+            ctx.globalAlpha=0.7
+            ctx.strokeRect(gx+2, gyy+2, S-4, S-4)
+            ctx.globalAlpha=1
+            // Inner dot for extra visibility
+            ctx.fillStyle=ghostColor
+            ctx.globalAlpha=0.35
+            ctx.fillRect(gx+5, gyy+5, S-10, S-10)
+            ctx.globalAlpha=1
+          }))
+        }
       }
 
       // Active piece
