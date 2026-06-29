@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 
 const links = [
-  { label: 'Home',     page: 'home' },
-  { label: 'Shop',     page: 'shop' },
-  { label: 'Lookbook', page: 'lookbook' },
-  { label: 'Arcade',   page: 'arcade' },
-  { label: 'Music',    page: 'music' },
-  { label: 'About',    page: 'about' },
-  { label: 'Wishlist', page: 'wishlist' },
-  { label: 'Alarm',    page: 'alarm' },
+  { label: 'Home',     page: 'home',     path: '/' },
+  { label: 'Shop',     page: 'shop',     path: '/shop' },
+  { label: 'Lookbook', page: 'lookbook', path: '/lookbook' },
+  { label: 'Arcade',   page: 'arcade',   path: '/arcade' },
+  { label: 'Music',    page: 'music',    path: '/music' },
+  { label: 'About',    page: 'about',    path: '/about' },
+  { label: 'Wishlist', page: 'wishlist', path: '/wishlist' },
+  { label: 'Alarm',    page: 'alarm',    path: '/alarm' },
 ]
 
 export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen, customer, onLogin, onAccount }) {
@@ -171,9 +171,9 @@ export default function Navbar({ page, onNav, totalItems, wishCount, onCartOpen,
           </button>
         ))}
         <button className="mobile-link" onClick={() => go('wishlist')}>
-            ♡ Wishlist{wishCount > 0 && ` (${wishCount})`}
-          </button>
-          <button className="mobile-cart" onClick={() => { onCartOpen(); setMenuOpen(false) }}>
+          ♡ Wishlist{wishCount > 0 && ` (${wishCount})`}
+        </button>
+        <button className="mobile-cart" onClick={() => { onCartOpen(); setMenuOpen(false) }}>
           Cart {totalItems > 0 ? `(${totalItems})` : ''}
         </button>
       </div>

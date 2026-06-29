@@ -1,5 +1,5 @@
-// v-docs — rebuilt following Shopify Customer Account API docs exactly
 import { useState, useEffect } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import Navbar            from './components/Navbar'
 import Footer            from './components/Footer'
 import CartDrawer        from './components/CartDrawer'
@@ -15,144 +15,11 @@ import WishlistPage      from './pages/WishlistPage'
 import AlarmPage         from './pages/AlarmPage'
 import AccountPage       from './pages/AccountPage'
 import CallbackPage      from './pages/CallbackPage'
-import { useProducts }   from './hooks/useProducts'
-import { useCart }       from './hooks/useCart'
-import { useWishlist }   from './hooks/useWishlist'
+import { useProducts }       from './hooks/useProducts'
+import { useCart }           from './hooks/useCart'
+import { useWishlist }       from './hooks/useWishlist'
 import { useRecentlyViewed } from './hooks/useRecentlyViewed'
-import { useCustomer }   from './hooks/useCustomer'
-
-function getInitialPage() {
-  const path   = window.location.pathname
-  const search = window.location.search
-
-  // If already logged in and landing on callback, skip to account
-  const hasToken    = !!localStorage.getItem('neon_customer_token')
-  const hasCustomer = !!localStorage.getItem('neon_customer')
-
-  // Callback from Shopify — only treat as callback if NOT already logged in
-  if (path.includes('/account/callback') && search.includes('code=') && search.includes('state=')) {
-    if (hasToken && hasCustomer) {
-      // Already logged in — back button hit, go to account instead
-      window.history.replaceState({}, '', '/')
-      return 'account'
-    }
-    return 'callback'
-  }
-
-  // Returned from callback with success flag
-  if (search.includes('account=1')) {
-    window.history.replaceState({}, '', '/')
-    return 'account'
-  }
-
-  return 'home'
-}
-
-export default function App() {
-  const [page,       setPage]       = useState(getInitialPage)
-  const [cartOpen,   setCartOpen]   = useState(false)
-  const [detailProd, setDetailProd] = useState(null)
-  const [musicOn,    setMusicOn]    = useState(false)
-
-  const { products, loading }       = useProducts(12)
-  const { lines, totalItems, totalPrice, currency,
-          loading: cartLoading, addToCart, updateQuantity, removeLine, goToCheckout } = useCart()
-  const { items: wishlist, toggle: toggleWishlist,
-          isWishlisted, count: wishCount } = useWishlist()
-  const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
-  const { customer, isLoggedIn, error: authError,
-          login, logout, handleCallback, fetchOrders } = useCustomer()
-
-  useEffect(() => {
-    if (page !== 'callback') window.scrollTo({ top: 0 })
-  }, [page])
-
-  function navigate(p) { setPage(p); setCartOpen(false) }
-  function handleNav(p) { if (p === 'music') setMusicOn(true); navigate(p) }
-
-  function handleViewDetail(product) {
-    // Don't open if modal is already showing a product (prevents re-open on close click)
-    setDetailProd(current => {
-      if (current !== null) return current
-      addRecentlyViewed(product)
-      return product
-    })
-  }
-
-  const sharedProps = {
-    onAddToCart:      addToCart,
-    cartLoading,
-    isWishlisted,
-    onToggleWishlist: toggleWishlist,
-    onViewDetail:     handleViewDetail,
-    recentlyViewed,
-  }
-
-  function renderPage() {
-    switch (page) {
-      case 'home':     return <HomePage     products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
-      case 'shop':     return <ShopPage     products={products} loading={loading} {...sharedProps}/>
-      case 'lookbook': return <LookbookPage onNav={handleNav}/>
-      case 'arcade':   return <ArcadePage/>
-      case 'music':    return <MusicPage/>
-      case 'about':    return <AboutPage    onNav={handleNav}/>
-      case 'wishlist': return <WishlistPage items={wishlist} onNav={handleNav} {...sharedProps}/>
-      case 'alarm':    return <AlarmPage/>
-      case 'callback': return <CallbackPage handleCallback={handleCallback} onNav={handleNav}/>
-      case 'account': {
-        const c = customer || (() => { try { return JSON.parse(localStorage.getItem('neon_customer')) } catch { return null } })()
-        const t = localStorage.getItem('neon_customer_token')
-        return c && t
-          ? <AccountPage customer={c} onLogout={() => { logout(); navigate('home') }} fetchOrders={fetchOrders} onNav={handleNav}/>
-          : <LoginPage onLogin={login} authError={authError}/>
-      }
-      default: return <HomePage products={products} loading={loading} onNav={handleNav} {...sharedProps}/>
-    }
-  }
-
-  return (
-    <div style={{ paddingBottom: musicOn && page !== 'music' ? '56px' : 0 }}>
-      <Navbar
-        page={page}
-        onNav={handleNav}
-        totalItems={totalItems}
-        wishCount={wishCount}
-        onCartOpen={() => setCartOpen(true)}
-        customer={customer}
-        onLogin={login}
-        onAccount={() => handleNav('account')}
-      />
-      <main>{renderPage()}</main>
-      <Footer onNav={handleNav}/>
-
-      {cartOpen && (
-        <CartDrawer
-          lines={lines} totalPrice={totalPrice} currency={currency}
-          onClose={() => setCartOpen(false)}
-          onCheckout={goToCheckout}
-          cartLoading={cartLoading}
-          customer={customer}
-          onUpdateQuantity={updateQuantity}
-          onRemoveLine={removeLine}
-          onLogin={() => { setCartOpen(false); login() }}
-        />
-      )}
-
-      {detailProd && (
-        <ProductDetailPage
-          product={detailProd}
-          onAddToCart={addToCart}
-          cartLoading={cartLoading}
-          onClose={() => setDetailProd(null)}
-          isWishlisted={isWishlisted}
-          onToggleWishlist={toggleWishlist}
-        />
-      )}
-
-      {musicOn && page !== 'music' && <MiniPlayer onNav={handleNav}/>}
-    </div>
-  )
-}
+import { useCustomer }       from './hooks/useCustomer'
 
 function LoginPage({ onLogin, authError }) {
   return (
@@ -179,5 +46,166 @@ function LoginPage({ onLogin, authError }) {
         </div>
       </div>
     </>
+  )
+}
+
+export default function App() {
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const [cartOpen,   setCartOpen]   = useState(false)
+  const [detailProd, setDetailProd] = useState(null)
+  const [musicOn,    setMusicOn]    = useState(false)
+
+  const { products, loading }       = useProducts(12)
+  const { lines, totalItems, totalPrice, currency,
+          loading: cartLoading, addToCart, updateQuantity, removeLine, goToCheckout } = useCart()
+  const { items: wishlist, toggle: toggleWishlist,
+          isWishlisted, count: wishCount } = useWishlist()
+  const { items: recentlyViewed, add: addRecentlyViewed } = useRecentlyViewed()
+  const { customer, isLoggedIn, error: authError,
+          login, logout, handleCallback, fetchOrders } = useCustomer()
+
+  // Scroll to top on route change (except callback)
+  useEffect(() => {
+    if (!location.pathname.includes('/account/callback')) {
+      window.scrollTo({ top: 0 })
+    }
+  }, [location.pathname])
+
+  function nav(p) {
+    if (p === 'music') setMusicOn(true)
+    setCartOpen(false)
+    // Map page ids to routes
+    const routes = {
+      home:     '/',
+      shop:     '/shop',
+      lookbook: '/lookbook',
+      arcade:   '/arcade',
+      music:    '/music',
+      about:    '/about',
+      wishlist: '/wishlist',
+      alarm:    '/alarm',
+      account:  '/account',
+    }
+    navigate(routes[p] || '/')
+  }
+
+  function handleViewDetail(product) {
+    setDetailProd(current => {
+      if (current !== null) return current
+      addRecentlyViewed(product)
+      return product
+    })
+  }
+
+  const sharedProps = {
+    onAddToCart:      addToCart,
+    cartLoading,
+    isWishlisted,
+    onToggleWishlist: toggleWishlist,
+    onViewDetail:     handleViewDetail,
+    recentlyViewed,
+  }
+
+  // Current page id for Navbar active state
+  const pathToPage = {
+    '/':         'home',
+    '/shop':     'shop',
+    '/lookbook': 'lookbook',
+    '/arcade':   'arcade',
+    '/music':    'music',
+    '/about':    'about',
+    '/wishlist': 'wishlist',
+    '/alarm':    'alarm',
+    '/account':  'account',
+  }
+  const currentPage = pathToPage[location.pathname] || 'home'
+
+  const isCallback = location.pathname.includes('/account/callback')
+
+  return (
+    <div style={{ paddingBottom: musicOn && currentPage !== 'music' ? '56px' : 0 }}>
+      <Navbar
+        page={currentPage}
+        onNav={nav}
+        totalItems={totalItems}
+        wishCount={wishCount}
+        onCartOpen={() => setCartOpen(true)}
+        customer={customer}
+        onLogin={login}
+        onAccount={() => nav('account')}
+      />
+
+      <main>
+        <Routes>
+          <Route path="/" element={
+            <HomePage products={products} loading={loading} onNav={nav} {...sharedProps}/>
+          }/>
+          <Route path="/shop" element={
+            <ShopPage products={products} loading={loading} {...sharedProps}/>
+          }/>
+          <Route path="/lookbook" element={<LookbookPage onNav={nav}/>}/>
+          <Route path="/arcade"   element={<ArcadePage/>}/>
+          <Route path="/music"    element={<MusicPage/>}/>
+          <Route path="/about"    element={<AboutPage onNav={nav}/>}/>
+          <Route path="/wishlist" element={
+            <WishlistPage items={wishlist} onNav={nav} {...sharedProps}/>
+          }/>
+          <Route path="/alarm"    element={<AlarmPage/>}/>
+
+          {/* Auth */}
+          <Route path="/account/callback" element={
+            <CallbackPage handleCallback={handleCallback} onNav={nav}/>
+          }/>
+          <Route path="/account" element={
+            (() => {
+              const c = customer || (() => { try { return JSON.parse(localStorage.getItem('neon_customer')) } catch { return null } })()
+              const t = localStorage.getItem('neon_customer_token')
+              return c && t
+                ? <AccountPage
+                    customer={c}
+                    onLogout={() => { logout(); navigate('/') }}
+                    fetchOrders={fetchOrders}
+                    onNav={nav}
+                  />
+                : <LoginPage onLogin={login} authError={authError}/>
+            })()
+          }/>
+
+          {/* Fallback */}
+          <Route path="*" element={
+            <HomePage products={products} loading={loading} onNav={nav} {...sharedProps}/>
+          }/>
+        </Routes>
+      </main>
+
+      {!isCallback && <Footer onNav={nav}/>}
+
+      {cartOpen && (
+        <CartDrawer
+          lines={lines} totalPrice={totalPrice} currency={currency}
+          onClose={() => setCartOpen(false)}
+          onCheckout={goToCheckout}
+          cartLoading={cartLoading}
+          customer={customer}
+          onUpdateQuantity={updateQuantity}
+          onRemoveLine={removeLine}
+          onLogin={() => { setCartOpen(false); login() }}
+        />
+      )}
+
+      {detailProd && (
+        <ProductDetailPage
+          product={detailProd}
+          onAddToCart={addToCart}
+          cartLoading={cartLoading}
+          onClose={() => setDetailProd(null)}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={toggleWishlist}
+        />
+      )}
+
+      {musicOn && currentPage !== 'music' && <MiniPlayer onNav={nav}/>}
+    </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 
 const STORAGE_KEY  = 'neon_customer'
 const TOKEN_KEY    = 'neon_customer_token'
+const ID_TOKEN_KEY = 'neon_customer_id_token'
 const REFRESH_KEY  = 'neon_customer_refresh'
 const APP_URL      = 'https://testing-headless.pages.dev'
 const SHOP_DOMAIN  = 'headless-website.myshopify.com'
@@ -9,11 +10,29 @@ const SHOP_DOMAIN  = 'headless-website.myshopify.com'
 function getClientId() { return import.meta.env.VITE_SHOPIFY_CUSTOMER_CLIENT_ID || '' }
 function getRedirectUri() { return `${APP_URL}/account/callback` }
 
-// ── PKCE helpers (exactly from Shopify docs) ──────────────────────────────────
+// ── Discovery — cache in module scope so we only fetch once ───────────────────
+let _openidConfig    = null
+let _customerApiConf = null
+
+async function discoverAuthEndpoints() {
+  if (_openidConfig) return _openidConfig
+  const res = await fetch(`https://${SHOP_DOMAIN}/.well-known/openid-configuration`)
+  _openidConfig = await res.json()
+  return _openidConfig
+}
+
+async function discoverAPIEndpoints() {
+  if (_customerApiConf) return _customerApiConf
+  const res = await fetch(`https://${SHOP_DOMAIN}/.well-known/customer-account-api`)
+  _customerApiConf = await res.json()
+  return _customerApiConf
+}
+
+// ── PKCE helpers — aligned with Shopify docs ──────────────────────────────────
 function generateCodeVerifier() {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
-  const str = String.fromCharCode.apply(null, Array.from(array))
+  const str    = String.fromCharCode.apply(null, Array.from(array))
   const base64 = btoa(str)
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
@@ -29,6 +48,16 @@ function generateState() {
   return Date.now().toString() + Math.random().toString(36).substring(2)
 }
 
+// ── Nonce — per docs, mitigates replay attacks ────────────────────────────────
+function generateNonce(length = 16) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let nonce = ''
+  for (let i = 0; i < length; i++) {
+    nonce += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return nonce
+}
+
 function decodeJWT(token) {
   try {
     const payload = token.split('.')[1]
@@ -37,17 +66,30 @@ function decodeJWT(token) {
   } catch { return null }
 }
 
-// ── Discover endpoints from Shopify (docs-recommended approach) ───────────────
-async function discoverAuthEndpoints() {
-  const res = await fetch(`https://${SHOP_DOMAIN}/.well-known/openid-configuration`)
-  return await res.json()
-  // Returns: { authorization_endpoint, token_endpoint, end_session_endpoint }
-}
-
-async function discoverAPIEndpoints() {
-  const res = await fetch(`https://${SHOP_DOMAIN}/.well-known/customer-account-api`)
-  return await res.json()
-  // Returns: { graphql_api: "https://{shopDomain}/customer/api/{version}/graphql" }
+// ── Token refresh — per docs ──────────────────────────────────────────────────
+async function refreshAccessToken() {
+  const refreshToken = localStorage.getItem(REFRESH_KEY)
+  if (!refreshToken) return null
+  try {
+    const config = await discoverAuthEndpoints()
+    const res = await fetch(config.token_endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Origin': APP_URL },
+      body: new URLSearchParams({
+        grant_type:    'refresh_token',
+        client_id:     getClientId(),
+        refresh_token: refreshToken,
+      }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    if (data.access_token) {
+      localStorage.setItem(TOKEN_KEY, data.access_token)
+      if (data.refresh_token) localStorage.setItem(REFRESH_KEY,  data.refresh_token)
+      if (data.id_token)      localStorage.setItem(ID_TOKEN_KEY, data.id_token)
+    }
+    return data.access_token || null
+  } catch { return null }
 }
 
 export function useCustomer() {
@@ -70,29 +112,25 @@ export function useCustomer() {
     setError(null)
     try {
       const clientId = getClientId()
-      console.log('[Auth] Client ID:', clientId ? 'found' : 'MISSING')
       if (!clientId) { setError('VITE_SHOPIFY_CUSTOMER_CLIENT_ID not set'); return }
 
-      // Step 1: Discover endpoints (docs recommended)
-      console.log('[Auth] Discovering endpoints from:', `https://${SHOP_DOMAIN}/.well-known/openid-configuration`)
-      const config = await discoverAuthEndpoints()
-      console.log('[Auth] Auth endpoint:', config.authorization_endpoint)
-
-      // Step 2: Generate PKCE
-      const verifier   = generateCodeVerifier()
-      const challenge  = await generateCodeChallenge(verifier)
-      const state      = generateState()
+      const config    = await discoverAuthEndpoints()
+      const verifier  = generateCodeVerifier()
+      const challenge = await generateCodeChallenge(verifier)
+      const state     = generateState()
+      const nonce     = generateNonce()
 
       localStorage.setItem('pkce_verifier', verifier)
       localStorage.setItem('pkce_state',    state)
+      localStorage.setItem('pkce_nonce',    nonce)
 
-      // Step 3: Build authorize URL
       const url = new URL(config.authorization_endpoint)
       url.searchParams.append('client_id',             clientId)
       url.searchParams.append('response_type',         'code')
       url.searchParams.append('redirect_uri',          getRedirectUri())
       url.searchParams.append('scope',                 'openid email customer-account-api:full')
       url.searchParams.append('state',                 state)
+      url.searchParams.append('nonce',                 nonce)
       url.searchParams.append('code_challenge',        challenge)
       url.searchParams.append('code_challenge_method', 'S256')
 
@@ -105,14 +143,10 @@ export function useCustomer() {
 
   // ── Handle OAuth callback ─────────────────────────────────────────────────
   const handleCallback = useCallback(async () => {
-    // Only run once — auth codes are single use
     if (callbackRan.current) return !!localStorage.getItem(TOKEN_KEY)
     callbackRan.current = true
 
-    // If already logged in (token in localStorage), skip the callback entirely
-    // This handles the back-button case where the callback URL is re-visited
     if (localStorage.getItem(TOKEN_KEY) && localStorage.getItem(STORAGE_KEY)) {
-      console.log('[Auth] Already logged in — skipping callback')
       return true
     }
 
@@ -121,28 +155,23 @@ export function useCustomer() {
     const state     = params.get('state')
     const errParam  = params.get('error')
 
-    if (errParam)  { setError('Login cancelled.'); return false }
-    if (!code)     { setError('No code received.'); return false }
+    if (errParam) { setError('Login cancelled.'); return false }
+    if (!code)    { setError('No code received.'); return false }
 
-    const savedState   = localStorage.getItem('pkce_state')
+    const savedState    = localStorage.getItem('pkce_state')
     const savedVerifier = localStorage.getItem('pkce_verifier')
+    const savedNonce    = localStorage.getItem('pkce_nonce')
 
     if (state !== savedState) { setError('State mismatch — please try again.'); return false }
 
     setLoading(true)
     try {
-      // Step 1: Discover token endpoint
-      const config    = await discoverAuthEndpoints()
-      const clientId  = getClientId()
+      const config   = await discoverAuthEndpoints()
+      const clientId = getClientId()
 
-      // Step 2: Exchange code for token
-      // Include origin header as required by Shopify docs to avoid 401 invalid_token
       const tokenRes = await fetch(config.token_endpoint, {
         method:  'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Origin':       APP_URL,
-        },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Origin': APP_URL },
         body: new URLSearchParams({
           grant_type:    'authorization_code',
           client_id:     clientId,
@@ -164,14 +193,22 @@ export function useCustomer() {
 
       if (!accessToken) throw new Error('No access token in response')
 
-      // Step 3: Fetch customer profile using discovered GraphQL endpoint
+      // Validate nonce from id_token — per docs, mitigates replay attacks
+      if (idToken && savedNonce) {
+        const decoded = decodeJWT(idToken)
+        if (decoded?.nonce && decoded.nonce !== savedNonce) {
+          throw new Error('Nonce mismatch — possible replay attack')
+        }
+      }
+
+      // Fetch customer profile using discovered GraphQL endpoint
       let customerData = null
       try {
         const apiConfig  = await discoverAPIEndpoints()
         const profileRes = await fetch(apiConfig.graphql_api, {
           method:  'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type':  'application/json',
             'Authorization': accessToken,
             'Origin':        APP_URL,
           },
@@ -187,7 +224,6 @@ export function useCustomer() {
             }`,
           }),
         })
-
         if (profileRes.ok) {
           const profileData = await profileRes.json()
           const c = profileData?.data?.customer
@@ -221,17 +257,19 @@ export function useCustomer() {
 
       if (!customerData) customerData = { id:'', email:'Customer', firstName:'Customer', lastName:'', name:'Customer' }
 
-      // Save everything
-      localStorage.setItem(TOKEN_KEY,    accessToken)
-      localStorage.setItem(REFRESH_KEY,  refreshToken || '')
-      localStorage.setItem(STORAGE_KEY,  JSON.stringify(customerData))
-      setToken(accessToken)
-      setCustomer(customerData)
+      // Store all tokens
+      localStorage.setItem(TOKEN_KEY,   accessToken)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(customerData))
+      if (idToken)      localStorage.setItem(ID_TOKEN_KEY, idToken)
+      if (refreshToken) localStorage.setItem(REFRESH_KEY,  refreshToken)
 
       // Clean up PKCE
       localStorage.removeItem('pkce_verifier')
       localStorage.removeItem('pkce_state')
+      localStorage.removeItem('pkce_nonce')
 
+      setToken(accessToken)
+      setCustomer(customerData)
       return true
 
     } catch (err) {
@@ -243,55 +281,36 @@ export function useCustomer() {
     }
   }, [])
 
-  // ── Fetch orders ──────────────────────────────────────────────────────────
+  // ── Fetch orders (with token refresh on 401) ──────────────────────────────
   const fetchOrders = useCallback(async () => {
-    const t = resolvedToken
+    let t = resolvedToken
     if (!t) return []
     try {
       const apiConfig = await discoverAPIEndpoints()
-      const res = await fetch(apiConfig.graphql_api, {
+      let res = await fetch(apiConfig.graphql_api, {
         method:  'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': t,
-          'Origin':        APP_URL,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': t, 'Origin': APP_URL },
         body: JSON.stringify({
           query: `{
             customer {
               orders(first: 10) {
                 nodes {
-                  id
-                  name
-                  number
-                  processedAt
-                  financialStatus
-                  fulfillmentStatus
+                  id name number processedAt
+                  financialStatus fulfillmentStatus
                   totalPrice    { amount currencyCode }
                   totalShipping { amount currencyCode }
                   totalTax      { amount currencyCode }
                   shippingAddress {
-                    firstName lastName
-                    address1 address2
+                    firstName lastName address1 address2
                     city province country zip
                   }
                   lineItems(first: 10) {
-                    nodes {
-                      title
-                      quantity
-                      variantTitle
-                    }
+                    nodes { title quantity variantTitle }
                   }
                   fulfillments(first: 5) {
                     nodes {
-                      status
-                      estimatedDeliveryAt
-                      latestShipmentStatus
-                      trackingInformation {
-                        company
-                        number
-                        url
-                      }
+                      status estimatedDeliveryAt latestShipmentStatus
+                      trackingInformation { company number url }
                     }
                   }
                 }
@@ -300,16 +319,30 @@ export function useCustomer() {
           }`,
         }),
       })
+
+      // 401 — attempt token refresh
+      if (res.status === 401) {
+        t = await refreshAccessToken()
+        if (!t) return []
+        res = await fetch(apiConfig.graphql_api, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': t, 'Origin': APP_URL },
+          body: JSON.stringify({ query: `{ customer { orders(first:10) { nodes { id name number processedAt financialStatus fulfillmentStatus totalPrice { amount currencyCode } lineItems(first:10) { nodes { title quantity variantTitle } } } } } }` }),
+        })
+      }
+
       const json = await res.json()
       return json?.data?.customer?.orders?.nodes || []
     } catch { return [] }
   }, [resolvedToken])
 
-  // ── Logout ────────────────────────────────────────────────────────────────
+  // ── Logout — uses discovered end_session_endpoint + id_token_hint ─────────
   const logout = useCallback(async () => {
-    const idToken = resolvedToken
+    const idToken = localStorage.getItem(ID_TOKEN_KEY)
+
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(ID_TOKEN_KEY)
     localStorage.removeItem(REFRESH_KEY)
     setCustomer(null)
     setToken(null)
@@ -325,7 +358,7 @@ export function useCustomer() {
     } catch {
       window.location.href = APP_URL
     }
-  }, [resolvedToken])
+  }, [])
 
   return {
     customer:  resolvedCustomer,
