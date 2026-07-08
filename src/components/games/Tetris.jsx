@@ -700,7 +700,7 @@ export default function Tetris({ onScore, onGameOver }) {
           />
           {/* VS button below canvas */}
           {vsState === 'solo' && (
-            <button onClick={() => setVsState('modal')} style={{
+            <button onClick={() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', bubbles: true })); setVsState('modal') }} style={{
               marginTop:8, padding:'7px 0', width:'100%',
               background:'rgba(0,255,200,0.06)',
               border:'1px solid rgba(0,255,200,0.25)',
