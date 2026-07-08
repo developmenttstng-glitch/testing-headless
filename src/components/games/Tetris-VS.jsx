@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
+// ── Supabase (NEON store credentials) ────────────────────────────────────────
 const supabase = createClient(
   'https://mmbslafosnxbysifyfjb.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tYnNsYWZvc254YnlzaWZ5ZmpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NzE5NTYsImV4cCI6MjA5ODE0Nzk1Nn0.IkV0g-8R86bKMRSjO-XDQwblIOZDItVVFjLKDPNng7g'
 )
 
+// ── Game constants ────────────────────────────────────────────────────────────
 const W=10, H=20, S=16
 const COLORS=['#00ffc8','#bf00ff','#ff003c','#00c8ff','#ffcc00','#ff6600','#00ff66']
 const PIECES=[
@@ -27,7 +29,7 @@ function generateRoomId() {
   return Math.random().toString(36).substring(2,8).toUpperCase()
 }
 
-// ── Single player canvas game ─────────────────────────────────────────────────
+// ── Single player canvas game (original) ─────────────────────────────────────
 function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
   const ref = useRef(null)
 
@@ -113,19 +115,22 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
       draw()
     }
 
+    // Add garbage lines from opponent
     function addGarbage(lines) {
       state.pendingGarbage += lines
     }
+    // expose so parent can call
     canvas._addGarbage = addGarbage
 
     function applyGarbage() {
       if(state.pendingGarbage <= 0) return
       const n = Math.min(state.pendingGarbage, 4)
       state.pendingGarbage -= n
+      // Remove top rows, add garbage at bottom
       state.board.splice(0, n)
       for(let i=0;i<n;i++) {
         const hole = Math.floor(Math.random()*W)
-        const row = Array(W).fill(8)
+        const row = Array(W).fill(8) // 8 = gray garbage
         row[hole] = 0
         state.board.push(row)
       }
@@ -146,6 +151,7 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
       state.canHold = true
       onScore(state.score, state.level)
 
+      // VS mode: send garbage for 2+ line clears
       if(vsMode && cleared >= 2) {
         const garbage = cleared === 2 ? 1 : cleared === 3 ? 2 : 4
         onBoard && onBoard(state.board, garbage)
@@ -153,6 +159,7 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
         onBoard && onBoard(state.board, 0)
       }
 
+      // Apply any pending garbage
       applyGarbage()
       restartLoop()
     }
@@ -177,6 +184,7 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
         if(!spawnNext()) return
       }
       draw()
+      // Broadcast board every tick in vs mode
       if(vsMode) onBoard && onBoard(state.board, 0)
     }
 
@@ -308,6 +316,7 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
         ctx.fillText(val, RX+PANEL/2, y+14)
       })
 
+      // Pending garbage indicator
       if(state.pendingGarbage > 0) {
         ctx.fillStyle='rgba(255,0,60,0.8)'
         ctx.font='bold 10px monospace'
@@ -376,7 +385,7 @@ function TetrisCanvas({ onScore, onGameOver, onBoard, vsMode = false }) {
   )
 }
 
-// ── Opponent mini board ───────────────────────────────────────────────────────
+// ── Opponent board renderer (read-only) ───────────────────────────────────────
 function OpponentBoard({ board, name, score, isDead }) {
   const ref = useRef(null)
 
@@ -384,7 +393,7 @@ function OpponentBoard({ board, name, score, isDead }) {
     const canvas = ref.current
     if(!canvas || !board) return
     const ctx = canvas.getContext('2d')
-    const s   = 10
+    const s   = 10 // smaller cell size for opponent
     const w   = W*s, h = H*s
     canvas.width  = w
     canvas.height = h
@@ -392,17 +401,20 @@ function OpponentBoard({ board, name, score, isDead }) {
     ctx.fillStyle = '#03050a'
     ctx.fillRect(0,0,w,h)
 
+    // Grid
     ctx.strokeStyle='rgba(0,255,200,0.04)'
     ctx.lineWidth=0.5
     for(let r=0;r<H;r++) for(let c=0;c<W;c++)
       ctx.strokeRect(c*s, r*s, s, s)
 
+    // Cells
     board.forEach((row,r)=>row.forEach((v,c)=>{
       if(!v) return
       ctx.fillStyle = v===8 ? '#333' : COLORS[v-1]
       ctx.fillRect(c*s+1, r*s+1, s-2, s-2)
     }))
 
+    // Dead overlay
     if(isDead) {
       ctx.fillStyle='rgba(3,5,10,0.75)'
       ctx.fillRect(0,0,w,h)
@@ -415,20 +427,20 @@ function OpponentBoard({ board, name, score, isDead }) {
 
   return (
     <div style={{ textAlign:'center' }}>
-      <div style={{ fontSize:11, color:'rgba(0,255,200,0.6)', marginBottom:4, fontFamily:'monospace', letterSpacing:2 }}>
+      <div style={{ fontSize:11, color:'rgba(0,255,200,0.6)', marginBottom:6, fontFamily:'monospace', letterSpacing:2 }}>
         {name || 'Opponent'}
       </div>
-      <div style={{ fontSize:10, color:'rgba(0,255,200,0.35)', marginBottom:8, fontFamily:'monospace' }}>
-        {score || 0} pts
+      <div style={{ fontSize:10, color:'rgba(0,255,200,0.4)', marginBottom:8, fontFamily:'monospace' }}>
+        Score: {score || 0}
       </div>
       <canvas ref={ref} style={{ display:'block', border:'1px solid rgba(0,255,200,0.1)', borderRadius:2 }}/>
     </div>
   )
 }
 
-// ── VS Modal ──────────────────────────────────────────────────────────────────
+// ── VS Room UI ───────────────────────────────────────────────────────────────
 function VSModal({ onClose, onStartVS }) {
-  const [mode,     setMode]     = useState(null)
+  const [mode,     setMode]     = useState(null) // 'create' | 'join'
   const [roomId,   setRoomId]   = useState('')
   const [password, setPassword] = useState('')
   const [name,     setName]     = useState('')
@@ -436,22 +448,20 @@ function VSModal({ onClose, onStartVS }) {
   const [loading,  setLoading]  = useState(false)
 
   const inp = {
-    width:'100%', padding:'8px 12px',
-    background:'rgba(0,255,200,0.05)',
-    border:'1px solid rgba(0,255,200,0.2)',
-    borderRadius:3, color:'#00ffc8',
-    fontFamily:'monospace', fontSize:13,
-    outline:'none', marginBottom:10, boxSizing:'border-box',
+    width:'100%', padding:'8px 12px', background:'rgba(0,255,200,0.05)',
+    border:'1px solid rgba(0,255,200,0.2)', borderRadius:4,
+    color:'#00ffc8', fontFamily:'monospace', fontSize:13, outline:'none',
+    marginBottom:10,
   }
 
-  function handleCreate() {
+  async function handleCreate() {
     if(!name.trim()) { setError('Enter your name'); return }
     setLoading(true)
     const id = generateRoomId()
     onStartVS({ roomId: id, password: password.trim(), name: name.trim(), isHost: true })
   }
 
-  function handleJoin() {
+  async function handleJoin() {
     if(!name.trim()) { setError('Enter your name'); return }
     if(!roomId.trim()) { setError('Enter room ID'); return }
     setLoading(true)
@@ -460,41 +470,45 @@ function VSModal({ onClose, onStartVS }) {
 
   return (
     <div style={{
-      position:'fixed', inset:0, background:'rgba(0,0,0,0.88)',
+      position:'fixed', inset:0, background:'rgba(0,0,0,0.85)',
       display:'flex', alignItems:'center', justifyContent:'center',
-      zIndex:9999,
+      zIndex:1000,
     }}>
       <div style={{
         background:'#03050a', border:'1px solid rgba(0,255,200,0.25)',
-        borderRadius:6, padding:28, width:300, fontFamily:'monospace',
+        borderRadius:8, padding:28, width:320, fontFamily:'monospace',
       }}>
-        <div style={{ fontSize:15, fontWeight:700, color:'#00ffc8', marginBottom:4, letterSpacing:2 }}>⚔ VS MODE</div>
-        <div style={{ fontSize:10, color:'rgba(0,255,200,0.4)', marginBottom:20, letterSpacing:1 }}>Real-time multiplayer Tetris</div>
+        <div style={{ fontSize:16, fontWeight:700, color:'#00ffc8', marginBottom:4, letterSpacing:2 }}>
+          ⚔ VS MODE
+        </div>
+        <div style={{ fontSize:10, color:'rgba(0,255,200,0.4)', marginBottom:20, letterSpacing:1 }}>
+          Real-time multiplayer Tetris
+        </div>
 
         {!mode && (
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{ display:'flex', gap:10 }}>
             <button onClick={() => setMode('create')} style={{
-              flex:1, padding:'12px 0',
-              background:'rgba(0,255,200,0.08)',
-              border:'1px solid rgba(0,255,200,0.3)',
-              borderRadius:3, color:'#00ffc8',
-              fontFamily:'monospace', fontSize:11,
+              flex:1, padding:'12px 0', background:'rgba(0,255,200,0.08)',
+              border:'1px solid rgba(0,255,200,0.3)', borderRadius:4,
+              color:'#00ffc8', fontFamily:'monospace', fontSize:12,
               cursor:'pointer', letterSpacing:1,
-            }}>Create Room</button>
+            }}>
+              Create Room
+            </button>
             <button onClick={() => setMode('join')} style={{
-              flex:1, padding:'12px 0',
-              background:'rgba(0,255,200,0.08)',
-              border:'1px solid rgba(0,255,200,0.3)',
-              borderRadius:3, color:'#00ffc8',
-              fontFamily:'monospace', fontSize:11,
+              flex:1, padding:'12px 0', background:'rgba(0,255,200,0.08)',
+              border:'1px solid rgba(0,255,200,0.3)', borderRadius:4,
+              color:'#00ffc8', fontFamily:'monospace', fontSize:12,
               cursor:'pointer', letterSpacing:1,
-            }}>Join Room</button>
+            }}>
+              Join Room
+            </button>
           </div>
         )}
 
         {mode && (
           <div>
-            <div style={{ fontSize:10, color:'rgba(0,255,200,0.4)', marginBottom:14, letterSpacing:1 }}>
+            <div style={{ fontSize:11, color:'rgba(0,255,200,0.5)', marginBottom:14, letterSpacing:1 }}>
               {mode === 'create' ? '— CREATE ROOM —' : '— JOIN ROOM —'}
             </div>
 
@@ -506,8 +520,7 @@ function VSModal({ onClose, onStartVS }) {
               <>
                 <label style={{ fontSize:10, color:'rgba(0,255,200,0.5)', display:'block', marginBottom:4, letterSpacing:1 }}>Room ID</label>
                 <input value={roomId} onChange={e=>setRoomId(e.target.value.toUpperCase())}
-                  placeholder="e.g. ABC123"
-                  style={{...inp, textTransform:'uppercase', letterSpacing:3}} maxLength={6}/>
+                  placeholder="e.g. ABC123" style={{...inp, textTransform:'uppercase', letterSpacing:3}} maxLength={6}/>
               </>
             )}
 
@@ -517,21 +530,27 @@ function VSModal({ onClose, onStartVS }) {
             <input value={password} onChange={e=>setPassword(e.target.value)}
               placeholder="Leave blank for open room" type="password" style={inp}/>
 
-            {error && <div style={{ fontSize:10, color:'#ff003c', marginBottom:10 }}>⚠ {error}</div>}
+            {error && (
+              <div style={{ fontSize:10, color:'#ff003c', marginBottom:10 }}>⚠ {error}</div>
+            )}
 
             <div style={{ display:'flex', gap:8, marginTop:4 }}>
               <button onClick={() => { setMode(null); setError('') }} style={{
-                flex:1, padding:'9px 0', background:'transparent',
-                border:'1px solid rgba(255,255,255,0.1)', borderRadius:3,
-                color:'rgba(255,255,255,0.4)', fontFamily:'monospace',
-                fontSize:10, cursor:'pointer',
-              }}>Back</button>
-              <button onClick={mode==='create' ? handleCreate : handleJoin}
-                disabled={loading} style={{
-                  flex:2, padding:'9px 0',
+                flex:1, padding:'10px 0', background:'transparent',
+                border:'1px solid rgba(255,255,255,0.1)', borderRadius:4,
+                color:'rgba(255,255,255,0.4)', fontFamily:'monospace', fontSize:11,
+                cursor:'pointer',
+              }}>
+                Back
+              </button>
+              <button
+                onClick={mode==='create' ? handleCreate : handleJoin}
+                disabled={loading}
+                style={{
+                  flex:2, padding:'10px 0',
                   background: loading ? 'rgba(0,255,200,0.05)' : 'rgba(0,255,200,0.15)',
-                  border:'1px solid rgba(0,255,200,0.4)', borderRadius:3,
-                  color:'#00ffc8', fontFamily:'monospace', fontSize:11,
+                  border:'1px solid rgba(0,255,200,0.4)', borderRadius:4,
+                  color:'#00ffc8', fontFamily:'monospace', fontSize:12,
                   cursor: loading ? 'not-allowed' : 'pointer', letterSpacing:1,
                 }}>
                 {loading ? 'Connecting...' : mode==='create' ? 'Create →' : 'Join →'}
@@ -541,7 +560,7 @@ function VSModal({ onClose, onStartVS }) {
         )}
 
         <button onClick={onClose} style={{
-          width:'100%', marginTop:14, padding:'7px 0',
+          width:'100%', marginTop:14, padding:'8px 0',
           background:'transparent', border:'none',
           color:'rgba(255,255,255,0.2)', fontFamily:'monospace',
           fontSize:10, cursor:'pointer', letterSpacing:1,
@@ -553,7 +572,7 @@ function VSModal({ onClose, onStartVS }) {
   )
 }
 
-// ── Waiting room ──────────────────────────────────────────────────────────────
+// ── Waiting for opponent screen ───────────────────────────────────────────────
 function WaitingRoom({ roomId, onCancel }) {
   const [dots, setDots] = useState('.')
   useEffect(() => {
@@ -563,56 +582,67 @@ function WaitingRoom({ roomId, onCancel }) {
 
   return (
     <div style={{
-      display:'flex', flexDirection:'column',
-      alignItems:'center', justifyContent:'center',
-      padding:'32px 16px', fontFamily:'monospace',
+      display:'flex', flexDirection:'column', alignItems:'center',
+      justifyContent:'center', padding:40, fontFamily:'monospace',
     }}>
-      <div style={{ fontSize:11, color:'rgba(0,255,200,0.5)', marginBottom:14, letterSpacing:1 }}>
+      <div style={{ fontSize:13, color:'rgba(0,255,200,0.5)', marginBottom:16, letterSpacing:2 }}>
         Waiting for opponent{dots}
       </div>
-      <div style={{ fontSize:10, color:'rgba(0,255,200,0.3)', marginBottom:6, letterSpacing:1 }}>
-        Share this Room ID:
+      <div style={{
+        fontSize:11, color:'rgba(0,255,200,0.3)', marginBottom:8, letterSpacing:1,
+      }}>
+        Share this Room ID with your opponent:
       </div>
       <div style={{
-        fontSize:26, fontWeight:700, color:'#00ffc8',
-        letterSpacing:8, marginBottom:20,
-        padding:'10px 18px',
-        border:'1px solid rgba(0,255,200,0.3)',
-        borderRadius:4,
-        background:'rgba(0,255,200,0.05)',
+        fontSize:28, fontWeight:700, color:'#00ffc8',
+        letterSpacing:8, marginBottom:24,
+        padding:'10px 20px', border:'1px solid rgba(0,255,200,0.3)',
+        borderRadius:4, background:'rgba(0,255,200,0.05)',
       }}>
         {roomId}
       </div>
       <button onClick={onCancel} style={{
-        padding:'7px 18px', background:'transparent',
-        border:'1px solid rgba(255,255,255,0.15)', borderRadius:3,
+        padding:'8px 20px', background:'transparent',
+        border:'1px solid rgba(255,255,255,0.15)', borderRadius:4,
         color:'rgba(255,255,255,0.35)', fontFamily:'monospace',
-        fontSize:10, cursor:'pointer',
-      }}>Cancel</button>
+        fontSize:11, cursor:'pointer',
+      }}>
+        Cancel
+      </button>
     </div>
   )
 }
 
-// ── Main export ───────────────────────────────────────────────────────────────
+// ── Main Tetris component ─────────────────────────────────────────────────────
 export default function Tetris({ onScore, onGameOver }) {
-  const [vsState,  setVsState]  = useState('solo')
-  const [roomInfo, setRoomInfo] = useState(null)
-  const [opponent, setOpponent] = useState(null)
-  const [myName,   setMyName]   = useState('')
-  const [result,   setResult]   = useState(null)
-  const [gameKey,  setGameKey]  = useState(0)
-  const channelRef = useRef(null)
+  const [vsState,   setVsState]   = useState('solo') // 'solo'|'modal'|'waiting'|'playing'|'ended'
+  const [roomInfo,  setRoomInfo]  = useState(null)
+  const [opponent,  setOpponent]  = useState(null)  // { name, score, board, isDead }
+  const [myName,    setMyName]    = useState('')
+  const [result,    setResult]    = useState(null)  // 'win'|'lose'
+  const [gameKey,   setGameKey]   = useState(0)
+  const channelRef  = useRef(null)
   const myCanvasRef = useRef(null)
 
+  // ── Connect to Supabase channel ───────────────────────────────────────────
   const connectRoom = useCallback(async ({ roomId, password, name, isHost }) => {
     setMyName(name)
     setRoomInfo({ roomId, password, isHost })
 
-    const channel = supabase.channel(`tetris-${roomId}`, {
+    const channelName = `tetris-${roomId}`
+    const channel = supabase.channel(channelName, {
       config: { broadcast: { self: false }, presence: { key: name } }
     })
 
     channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState()
+        const others = Object.keys(state).filter(k => k !== name)
+        if(others.length > 0 && vsState !== 'playing') {
+          setVsState('playing')
+          setGameKey(k => k+1)
+        }
+      })
       .on('presence', { event: 'join' }, ({ key }) => {
         if(key !== name) {
           setOpponent(prev => ({ ...prev, name: key, score:0, board:null, isDead:false }))
@@ -621,11 +651,14 @@ export default function Tetris({ onScore, onGameOver }) {
         }
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
-        if(key !== name) setOpponent(prev => ({ ...prev, isDead: true }))
+        if(key !== name) {
+          setOpponent(prev => ({ ...prev, isDead: true }))
+        }
       })
       .on('broadcast', { event: 'board' }, ({ payload }) => {
         if(payload.name !== name) {
           setOpponent(prev => ({ ...prev, board: payload.board, score: payload.score }))
+          // Apply garbage to my board
           if(payload.garbage > 0 && myCanvasRef.current?._addGarbage) {
             myCanvasRef.current._addGarbage(payload.garbage)
           }
@@ -639,14 +672,22 @@ export default function Tetris({ onScore, onGameOver }) {
         }
       })
       .subscribe(async status => {
-        if(status === 'SUBSCRIBED') await channel.track({ name, score: 0 })
+        if(status === 'SUBSCRIBED') {
+          await channel.track({ name, score: 0 })
+          // Check for password (simple check — host sets it, joiner must match)
+          if(!isHost && password) {
+            // In production you'd verify server-side; here we trust the honor system
+            // or use a Supabase edge function for password verification
+          }
+        }
       })
 
     channelRef.current = channel
     setVsState(isHost ? 'waiting' : 'playing')
     if(!isHost) setGameKey(k => k+1)
-  }, [])
+  }, [vsState])
 
+  // ── Broadcast my board ────────────────────────────────────────────────────
   const broadcastBoard = useCallback((board, garbage) => {
     if(!channelRef.current) return
     channelRef.current.send({
@@ -655,6 +696,7 @@ export default function Tetris({ onScore, onGameOver }) {
     })
   }, [myName])
 
+  // ── My game over in VS ────────────────────────────────────────────────────
   function handleVsGameOver(score) {
     if(channelRef.current) {
       channelRef.current.send({
@@ -668,25 +710,59 @@ export default function Tetris({ onScore, onGameOver }) {
   }
 
   function handleCancel() {
-    channelRef.current?.unsubscribe()
-    channelRef.current = null
-    setVsState('solo'); setOpponent(null)
-    setResult(null); setRoomInfo(null)
+    if(channelRef.current) {
+      channelRef.current.unsubscribe()
+      channelRef.current = null
+    }
+    setVsState('solo')
+    setOpponent(null)
+    setResult(null)
+    setRoomInfo(null)
+    setGameKey(k => k+1)
+  }
+
+  function handleRestart() {
+    if(channelRef.current) {
+      channelRef.current.unsubscribe()
+      channelRef.current = null
+    }
+    setVsState('solo')
+    setOpponent(null)
+    setResult(null)
+    setRoomInfo(null)
     setGameKey(k => k+1)
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:0 }}>
+    <div style={{ position:'relative', display:'inline-block' }}>
 
-      {/* VS button — below canvas, full width, only in solo */}
-      <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+      {/* VS Mode button — only in solo */}
+      {vsState === 'solo' && (
+        <button onClick={() => setVsState('modal')} style={{
+          position:'absolute', top:-36, right:0,
+          padding:'5px 14px',
+          background:'rgba(0,255,200,0.08)',
+          border:'1px solid rgba(0,255,200,0.3)',
+          borderRadius:4, color:'#00ffc8',
+          fontFamily:'monospace', fontSize:11,
+          cursor:'pointer', letterSpacing:1,
+          transition:'all 0.2s', zIndex:10,
+        }}
+        onMouseEnter={e => e.currentTarget.style.background='rgba(0,255,200,0.18)'}
+        onMouseLeave={e => e.currentTarget.style.background='rgba(0,255,200,0.08)'}>
+          ⚔ VS Mode
+        </button>
+      )}
+
+      {/* Main game layout */}
+      <div style={{ display:'flex', gap:24, alignItems:'flex-start' }}>
 
         {/* My board */}
-        <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+        <div>
           {vsState === 'playing' && (
             <div style={{
               fontSize:10, color:'rgba(0,255,200,0.5)',
-              fontFamily:'monospace', marginBottom:6, letterSpacing:2, textAlign:'center',
+              fontFamily:'monospace', marginBottom:6, letterSpacing:1,
             }}>
               YOU — {myName}
             </div>
@@ -698,27 +774,11 @@ export default function Tetris({ onScore, onGameOver }) {
             onBoard={vsState === 'playing' ? broadcastBoard : null}
             vsMode={vsState === 'playing'}
           />
-          {/* VS button below canvas */}
-          {vsState === 'solo' && (
-            <button onClick={() => setVsState('modal')} style={{
-              marginTop:8, padding:'7px 0', width:'100%',
-              background:'rgba(0,255,200,0.06)',
-              border:'1px solid rgba(0,255,200,0.25)',
-              borderRadius:3, color:'#00ffc8',
-              fontFamily:'monospace', fontSize:11,
-              cursor:'pointer', letterSpacing:2,
-              transition:'background 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background='rgba(0,255,200,0.14)'}
-            onMouseLeave={e => e.currentTarget.style.background='rgba(0,255,200,0.06)'}>
-              ⚔ VS MODE
-            </button>
-          )}
         </div>
 
-        {/* Opponent board */}
+        {/* Opponent board — VS only */}
         {(vsState === 'playing' || vsState === 'ended') && opponent && (
-          <div style={{ paddingTop:18 }}>
+          <div style={{ paddingTop: 20 }}>
             <OpponentBoard
               board={opponent.board}
               name={opponent.name}
@@ -734,19 +794,28 @@ export default function Tetris({ onScore, onGameOver }) {
         )}
       </div>
 
+      {/* VS Modal */}
+      {vsState === 'modal' && (
+        <VSModal
+          onClose={() => setVsState('solo')}
+          onStartVS={connectRoom}
+        />
+      )}
+
       {/* Result overlay */}
       {vsState === 'ended' && result && (
         <div style={{
-          position:'fixed', inset:0,
-          background:'rgba(3,5,10,0.92)',
+          position:'absolute', inset:0,
+          background:'rgba(3,5,10,0.88)',
           display:'flex', flexDirection:'column',
           alignItems:'center', justifyContent:'center',
-          fontFamily:'monospace', zIndex:9998,
+          fontFamily:'monospace', zIndex:20,
+          borderRadius:4,
         }}>
           <div style={{
-            fontSize:30, fontWeight:900, letterSpacing:4,
+            fontSize:32, fontWeight:900, letterSpacing:4,
             color: result==='win' ? '#00ffc8' : '#ff003c',
-            marginBottom:10,
+            marginBottom:12,
           }}>
             {result === 'win' ? '🏆 YOU WIN' : '💀 YOU LOSE'}
           </div>
@@ -754,30 +823,26 @@ export default function Tetris({ onScore, onGameOver }) {
             {result === 'win' ? 'Opponent topped out!' : 'Better luck next time.'}
           </div>
           <div style={{ display:'flex', gap:10 }}>
-            <button onClick={handleCancel} style={{
-              padding:'10px 22px',
+            <button onClick={handleRestart} style={{
+              padding:'10px 24px',
               background:'rgba(0,255,200,0.12)',
               border:'1px solid rgba(0,255,200,0.4)',
-              borderRadius:3, color:'#00ffc8',
-              fontFamily:'monospace', fontSize:11,
+              borderRadius:4, color:'#00ffc8',
+              fontFamily:'monospace', fontSize:12,
               cursor:'pointer', letterSpacing:1,
-            }}>Play Again</button>
+            }}>
+              Play Again
+            </button>
             <button onClick={handleCancel} style={{
-              padding:'10px 22px', background:'transparent',
-              border:'1px solid rgba(255,255,255,0.1)', borderRadius:3,
+              padding:'10px 24px', background:'transparent',
+              border:'1px solid rgba(255,255,255,0.1)', borderRadius:4,
               color:'rgba(255,255,255,0.3)', fontFamily:'monospace',
-              fontSize:11, cursor:'pointer',
-            }}>Solo Mode</button>
+              fontSize:12, cursor:'pointer',
+            }}>
+              Solo Mode
+            </button>
           </div>
         </div>
-      )}
-
-      {/* VS Modal */}
-      {vsState === 'modal' && (
-        <VSModal
-          onClose={() => setVsState('solo')}
-          onStartVS={connectRoom}
-        />
       )}
     </div>
   )
